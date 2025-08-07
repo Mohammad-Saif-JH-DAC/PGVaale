@@ -17,12 +17,13 @@ import Login from './pages/Login';
 import UserDashboard from './pages/UserDashboard';
 import TiffinDashboard from './pages/TiffinDashboard';
 import MaidDashboard from './pages/MaidDashboard';
+import MaidHiring from './pages/MaidHiring';
 import Footer from './Footer';
 import PrivacyPolicy from './components/PrivacyPolicy';
 
 // Helper to decode JWT and get user role
 function getUserRole() {
-  const token = localStorage.getItem('token');
+  const token = sessionStorage.getItem('token');
   if (!token) return null;
   try {
     const payload = JSON.parse(atob(token.split('.')[1]));
@@ -34,8 +35,8 @@ function getUserRole() {
 
 // Logout function
 function handleLogout(navigate) {
-  localStorage.removeItem('token');
-  localStorage.removeItem('userRole');
+  sessionStorage.removeItem('token');
+  sessionStorage.removeItem('userRole');
   navigate('/');
 }
 
@@ -50,7 +51,7 @@ function PrivateRoute({ element, allowedRoles }) {
 // Navigation component with logout functionality
 function Navigation() {
   const navigate = useNavigate();
-  const token = localStorage.getItem('token');
+  const token = sessionStorage.getItem('token');
   const userRole = getUserRole();
 
   return (
@@ -62,6 +63,11 @@ function Navigation() {
             {userRole !== 'owner' && (
   <li className="nav-item">
     <Link className="nav-link" to="/pgrooms">PG Rooms</Link>
+  </li>
+)}
+            {userRole === 'user' && (
+  <li className="nav-item">
+    <Link className="nav-link" to="/maid-hiring">Hire Maid</Link>
   </li>
 )}
             {!token && (
@@ -158,6 +164,7 @@ function App() {
             <Route path="/user-dashboard/*" element={<UserDashboard />} />
             <Route path="/tiffin-dashboard/*" element={<TiffinDashboard />} />
             <Route path="/maid-dashboard/*" element={<MaidDashboard />} />
+            <Route path="/maid-hiring" element={<MaidHiring />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           </Routes>
         </div>

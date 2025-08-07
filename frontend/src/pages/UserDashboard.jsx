@@ -6,10 +6,20 @@ import Toast from '../utils/Toast';
 
 
 
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import { FaRupeeSign, FaMapMarkerAlt, FaCheckCircle, FaImages, FaUser } from 'react-icons/fa';
+import UserProfile from '../components/UserProfile';
+
+const MyBookedPGs = ({ bookedPGs }) => {
+  // This component is not used, but if needed, define defaultIcon here.
+}
 
 // Dashboard Home Component
 const DashboardHome = () => {
   const [dashboardData, setDashboardData] = useState(null);
+  const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -19,8 +29,21 @@ const DashboardHome = () => {
   const fetchDashboardData = async () => {
     try {
       // Debug: Check if token exists
-      const token = localStorage.getItem('token');
+      const token = sessionStorage.getItem('token');
       console.log('Token exists:', !!token);
+      
+      // Fetch user profile to get real name
+      let userName = 'Guest';
+      if (token) {
+        try {
+          const profileResponse = await api.get('/api/user/profile');
+          setUserProfile(profileResponse.data);
+          userName = profileResponse.data.name || 'User';
+        } catch (profileError) {
+          console.warn('Could not fetch user profile, using default name');
+          userName = 'User';
+        }
+      }
       
       // Try to get user-specific data, fallback to general data if 403
       let response;
@@ -37,7 +60,7 @@ const DashboardHome = () => {
       }
       
       setDashboardData({
-        userName: token ? 'User' : 'Guest',
+        userName: userName,
         data: response.data
       });
     } catch (error) {
@@ -91,7 +114,7 @@ const DashboardHome = () => {
             <div className="card-body">
               <div className="row">
                 <div className="col-md-3 mb-3">
-                  <a href="/user-dashboard/pgs" className="btn btn-outline-primary w-100">
+                  <a href="/pgrooms" className="btn btn-outline-primary w-100">
                     🏠 Browse PG Rooms
                   </a>
                 </div>
@@ -101,7 +124,7 @@ const DashboardHome = () => {
                   </a>
                 </div>
                 <div className="col-md-3 mb-3">
-                  <a href="/user-dashboard/maids" className="btn btn-outline-success w-100">
+                  <a href="/maid-hiring" className="btn btn-outline-success w-100">
                     🧹 Hire Maid Service
                   </a>
                 </div>
@@ -113,7 +136,12 @@ const DashboardHome = () => {
               </div>
               
               <div className="row mt-3">
-                <div className="col-md-12 mb-3">
+                <div className="col-md-6 mb-3">
+                  <a href="/user-dashboard/profile" className="btn btn-outline-secondary w-100">
+                    👤 Manage Profile
+                  </a>
+                </div>
+                <div className="col-md-6 mb-3">
                   <a href="/user-dashboard/feedback" className="btn btn-outline-info w-100">
                     ⭐ Give Feedback
                   </a>
@@ -127,33 +155,47 @@ const DashboardHome = () => {
   );
 };
 
-// PG Interests Component
+// PG Interests Component (User's Booked PGs)
 const PGInterests = () => {
-  const [interests, setInterests] = useState([]);
+  const [bookedPGs, setBookedPGs] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchInterests();
-  }, []);
+  const defaultIcon = new L.Icon({
+    iconUrl: 'https://unpkg.com/leaflet@1.9.3/dist/images/marker-icon.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+  });
 
-  const fetchInterests = async () => {
+  const fetchBookedPGs = async () => {
     try {
-      const response = await api.get('/api/user/pgs');
-      setInterests(response.data);
+      const response = await api.get('/api/pg/user/booked');
+      setBookedPGs(response.data);
     } catch (error) {
       //console.error('Error fetching PG interests:', error);
       Toast.error('Error loading PG interests: ' + (error.response?.data || error.message));
+      console.error('Error fetching booked PGs:', error);
       if (error.response?.status === 401) {
-        // Authentication failed - redirect to login
-        localStorage.removeItem('token');
+        sessionStorage.removeItem('token');
         window.location.href = '/login';
       } else {
-        // Other errors - show empty state
-        setInterests([]);
+        setBookedPGs([]);
       }
     } finally {
       setLoading(false);
     }
+  };
+
+  useEffect(() => {
+    fetchBookedPGs();
+  }, []);
+
+  const getImageUrl = (imgPath) => {
+    if (!imgPath || typeof imgPath !== 'string') return '/placeholder.png';
+    const trimmed = imgPath.trim();
+    if (trimmed === '') return '/placeholder.png';
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed;
+    if (trimmed.startsWith('/')) return `${window.location.origin.replace('3000', '8080')}${trimmed}`;
+    return `https://${trimmed}`;
   };
 
   if (loading) {
@@ -170,61 +212,111 @@ const PGInterests = () => {
 
   return (
     <div className="container mt-4">
-      <div className="row">
-        <div className="col-12">
-          <h2 className="mb-4">🏠 My PG Interests</h2>
-        </div>
-      </div>
+      <h2 className="mb-4 text-center">
+        <FaCheckCircle className="text-success me-2" /> My Booked PGs
+      </h2>
 
-      <div className="row">
-        <div className="col-12">
-          {interests.length > 0 ? (
-            <div className="card">
-              <div className="card-body">
-                <div className="table-responsive">
-                  <table className="table table-hover">
-                    <thead>
-                      <tr>
-                        <th>PG Name</th>
-                        <th>Room Type</th>
-                        <th>Location</th>
-                        <th>Price</th>
-                        <th>Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {interests.map((interest) => (
-                        <tr key={interest.id}>
-                          <td>{interest.room?.pg?.name || 'Unknown PG'}</td>
-                          <td>{interest.room?.roomType || 'N/A'}</td>
-                          <td>{interest.room?.pg?.location || 'N/A'}</td>
-                          <td>₹{interest.room?.price || 'N/A'}</td>
-                          <td>
-                            <span className="badge bg-info">Interested</span>
-                          </td>
-                        </tr>
+      {bookedPGs.length > 0 ? (
+        <div className="row g-4">
+          {bookedPGs.map((pg) => (
+            <div className="col-12" key={pg.id}>
+              <div className="card shadow-sm h-100 border-primary">
+                <div className="card-header bg-primary text-white d-flex justify-content-between">
+                  <span>
+                    <FaMapMarkerAlt /> #{pg.id} - {pg.region}
+                  </span>
+                  <span>
+                    <FaUser /> {pg.owner?.name || 'N/A'}
+                  </span>
+                </div>
+
+                <div className="card-body">
+                  {/* Images */}
+                  {pg.imagePaths?.length > 0 ? (
+                    <div className="d-flex flex-wrap justify-content-start gap-2 mb-3">
+                      {pg.imagePaths.map((imgPath, index) => (
+                        <img
+                          key={index}
+                          src={getImageUrl(imgPath)}
+                          alt={`pg-img-${index}`}
+                          style={{
+                            width: '100px',
+                            height: '80px',
+                            objectFit: 'cover',
+                            borderRadius: '8px',
+                          }}
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = '/placeholder.png';
+                          }}
+                        />
                       ))}
-                    </tbody>
-                  </table>
+                    </div>
+                  ) : (
+                    <p className="text-muted">
+                      <FaImages className="me-1" /> No images available
+                    </p>
+                  )}
+
+                  {/* Map */}
+                  {pg.latitude && pg.longitude && (
+                    <MapContainer
+                      center={[pg.latitude, pg.longitude]}
+                      zoom={13}
+                      scrollWheelZoom={false}
+                      style={{ height: '250px', borderRadius: '10px' }}
+                    >
+                      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                      <Marker position={[pg.latitude, pg.longitude]} icon={defaultIcon}>
+                        <Popup>PG #{pg.id} - {pg.region}</Popup>
+                      </Marker>
+                    </MapContainer>
+                  )}
+
+                  {/* PG Details */}
+                  <ul className="list-group list-group-flush mt-3">
+                    <li className="list-group-item">
+                      <FaRupeeSign className="me-2" />
+                      Rent: ₹{pg.rent || 'N/A'}
+                    </li>
+                    <li className="list-group-item">
+                      Amenities: <span className="text-muted">{pg.amenities || 'N/A'}</span>
+                    </li>
+                    <li className="list-group-item">
+                      General Preference: <span className="text-muted">{pg.generalPreference || 'N/A'}</span>
+                    </li>
+                    <li className="list-group-item">
+                      Nearby Resources: <span className="text-muted">{pg.nearbyResources || 'N/A'}</span>
+                    </li>
+                    <li className="list-group-item">
+                      Availability: <span className="text-muted">{pg.availability || 'N/A'}</span>
+                    </li>
+                    <li className="list-group-item">
+                      Coordinates: <span className="text-muted">{pg.latitude}, {pg.longitude}</span>
+                    </li>
+                    <li className="list-group-item">
+                      <span className="badge bg-success">
+                        <FaCheckCircle className="me-1" /> Booked
+                      </span>
+                    </li>
+                  </ul>
                 </div>
               </div>
             </div>
-          ) : (
-            <div className="card">
-              <div className="card-body text-center">
-                <div className="mb-3">
-                  <span style={{fontSize: '3rem'}}>🏠</span>
-                </div>
-                <h5 className="text-muted">No PG Interests Yet</h5>
-                <p className="text-muted">Start browsing PG rooms to express your interest!</p>
-                <a href="/pgrooms" className="btn btn-primary">
-                  Browse PG Rooms
-                </a>
-              </div>
-            </div>
-          )}
+          ))}
         </div>
-      </div>
+      ) : (
+        <div className="card text-center shadow-sm p-4">
+          <div className="card-body">
+            <div style={{ fontSize: '4rem' }}>😴</div>
+            <h5 className="text-muted mt-3">No Booked PGs Yet</h5>
+            <p className="text-muted">Start browsing and find a PG that suits you.</p>
+            <a href="/pgrooms" className="btn btn-outline-primary mt-2">
+              Browse PG Rooms
+            </a>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -541,7 +633,8 @@ const MaidServices = () => {
   const [showHireModal, setShowHireModal] = useState(false);
   const [selectedMaid, setSelectedMaid] = useState(null);
   const [hireForm, setHireForm] = useState({
-    serviceDate: '',
+    startDate: '',
+    endDate: '',
     userAddress: ''
   });
   const [message, setMessage] = useState('');
@@ -552,7 +645,7 @@ const MaidServices = () => {
 
   const fetchMaids = async () => {
     try {
-              const response = await api.get('/api/user/maids');
+      const response = await api.get('/api/maid/available');
       setMaids(response.data);
     } catch (error) {
       //console.error('Error fetching maids:', error);
@@ -570,23 +663,41 @@ const MaidServices = () => {
   const handleHireSubmit = async (e) => {
     e.preventDefault();
     try {
-              const response = await api.post('/api/user/maids/hire', {
+             // Get user ID from token
+       const token = sessionStorage.getItem('token');
+       if (!token) {
+         setMessage('Please log in to hire a maid');
+         return;
+       }
+
+       const payload = JSON.parse(atob(token.split('.')[1]));
+       const userId = payload.userId;
+
+       if (!userId) {
+         setMessage('Unable to get user information. Please try logging in again.');
+         return;
+       }
+
+      const response = await api.post('/api/user-maid/request', {
+        userId: userId,
         maidId: selectedMaid.id,
-        serviceDate: hireForm.serviceDate,
-        userAddress: hireForm.userAddress
+        startDate: hireForm.startDate,
+        endDate: hireForm.endDate,
+        userAddress: hireForm.userAddress,
+        timeSlot: selectedMaid.timing || 'Not specified' // Use maid's actual timing
       });
       
-      setMessage(response.data.message);
+      setMessage('Maid hiring request sent successfully!');
       setShowHireModal(false);
-      setHireForm({ serviceDate: '', userAddress: '' });
+      setHireForm({ startDate: '', endDate: '', userAddress: '' });
       setSelectedMaid(null);
       
       // Show success message
       setTimeout(() => setMessage(''), 3000);
       Toast.success('Maid hired successfully!');
     } catch (error) {
-      Toast.error('Error hiring maid: ' + error.response?.data);
-    }
+      Toast.error('Error hiring maid');
+      setMessage('Error hiring maid: ' + (error.response?.data || error.message));}
   };
 
   if (loading) {
@@ -619,18 +730,51 @@ const MaidServices = () => {
           <div key={maid.id} className="col-md-6 col-lg-4 mb-4">
             <div className="card h-100">
               <div className="card-body">
-                <h5 className="card-title">{maid.name}</h5>
-                <p className="card-text">
-                  <strong>Services:</strong> {maid.services || 'N/A'}<br/>
-                  <strong>Region:</strong> {maid.region || 'N/A'}<br/>
-                  <strong>Timing:</strong> {maid.timing || 'N/A'}<br/>
-                  <strong>Salary:</strong> ₹{maid.monthlySalary || 'N/A'}
-                </p>
+                <div className="d-flex justify-content-between align-items-start mb-3">
+                  <h5 className="card-title mb-0">{maid.name}</h5>
+                  <span className="badge bg-success">Available</span>
+                </div>
+                
+                <div className="mb-3">
+                  <p className="card-text">
+                    <strong>Services:</strong>
+                  </p>
+                  <div className="mb-2">
+                    {maid.services?.split(',').map((service, index) => (
+                      <span key={index} className="badge bg-light text-dark me-1 mb-1">
+                        {service.trim()}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="row mb-3">
+                  <div className="col-6">
+                    <small className="text-muted">Region</small>
+                    <p className="mb-0"><strong>{maid.region}</strong></p>
+                  </div>
+                  <div className="col-6">
+                    <small className="text-muted">Salary</small>
+                    <p className="mb-0"><strong>₹{maid.monthlySalary}/month</strong></p>
+                  </div>
+                </div>
+
+                <div className="row mb-3">
+                  <div className="col-6">
+                    <small className="text-muted">Timing</small>
+                    <p className="mb-0"><strong>{maid.timing}</strong></p>
+                  </div>
+                  <div className="col-6">
+                    <small className="text-muted">Gender</small>
+                    <p className="mb-0"><strong>{maid.gender}</strong></p>
+                  </div>
+                </div>
+
                 <button 
                   className="btn btn-success w-100"
                   onClick={() => handleHireClick(maid)}
                 >
-                  Hire Now
+                  🧹 Hire Now
                 </button>
               </div>
             </div>
@@ -654,14 +798,25 @@ const MaidServices = () => {
               <form onSubmit={handleHireSubmit}>
                 <div className="modal-body">
                   <div className="mb-3">
-                    <label className="form-label">Service Date</label>
+                    <label className="form-label">Start Date</label>
                     <input
                       type="date"
                       className="form-control"
-                      value={hireForm.serviceDate}
-                      onChange={(e) => setHireForm({...hireForm, serviceDate: e.target.value})}
+                      value={hireForm.startDate}
+                      onChange={(e) => setHireForm({...hireForm, startDate: e.target.value})}
                       required
                       min={new Date().toISOString().split('T')[0]}
+                    />
+                  </div>
+                  <div className="mb-3">
+                    <label className="form-label">End Date</label>
+                    <input
+                      type="date"
+                      className="form-control"
+                      value={hireForm.endDate}
+                      onChange={(e) => setHireForm({...hireForm, endDate: e.target.value})}
+                      required
+                      min={hireForm.startDate || new Date().toISOString().split('T')[0]}
                     />
                   </div>
                   <div className="mb-3">
@@ -746,6 +901,18 @@ const MyBookings = () => {
     }
   };
 
+  const handleChangeMaid = async (request) => {
+    if (window.confirm('Are you sure you want to change the maid for this booking?')) {
+      try {
+        await api.post(`/api/user/maid-requests/${request.id}/change`);
+        alert('Maid changed successfully!');
+        fetchBookings(); // Refresh the list
+      } catch (error) {
+        alert('Error changing maid: ' + error.response?.data);
+      }
+    }
+  };
+
   if (loading) {
     return (
       <div className="container mt-5">
@@ -774,7 +941,7 @@ const MyBookings = () => {
                 className={`nav-link ${activeTab === 'pg' ? 'active' : ''}`}
                 onClick={() => setActiveTab('pg')}
               >
-                🏠 PG Interests
+                🏠 My PG 
               </button>
             </li>
             <li className="nav-item" role="presentation">
@@ -832,7 +999,7 @@ const MyBookings = () => {
               ) : (
                 <div className="card">
                   <div className="card-body text-center">
-                    <h5 className="text-muted">No PG Interests</h5>
+                    <h5 className="text-muted">Try Finding your suitable PG 🏠</h5>
                     <p className="text-muted">You haven't expressed interest in any PG rooms yet.</p>
                   </div>
                 </div>
@@ -911,7 +1078,8 @@ const MyBookings = () => {
                         <thead>
                           <tr>
                             <th>Maid Name</th>
-                            <th>Service Date</th>
+                            <th>Start Date</th>
+                            <th>End Date</th>
                             <th>Request Date</th>
                             <th>Status</th>
                             <th>Actions</th>
@@ -921,7 +1089,8 @@ const MyBookings = () => {
                           {bookings.maidRequests.map((request) => (
                             <tr key={request.id}>
                               <td>{request.maid?.name || 'Unknown Maid'}</td>
-                              <td>{new Date(request.serviceDate).toLocaleDateString()}</td>
+                              <td>{request.startDate ? new Date(request.startDate).toLocaleDateString() : 'N/A'}</td>
+                              <td>{request.endDate ? new Date(request.endDate).toLocaleDateString() : 'N/A'}</td>
                               <td>{new Date(request.assignedDateTime).toLocaleDateString()}</td>
                               <td>
                                 <span className={`badge bg-${
@@ -935,10 +1104,18 @@ const MyBookings = () => {
                               <td>
                                 {request.status === 'PENDING' && (
                                   <button 
-                                    className="btn btn-outline-danger btn-sm"
+                                    className="btn btn-outline-danger btn-sm me-1"
                                     onClick={() => handleCancelRequest(request.id, 'maid')}
                                   >
                                     Cancel
+                                  </button>
+                                )}
+                                {request.status === 'ACCEPTED' && (
+                                  <button 
+                                    className="btn btn-outline-primary btn-sm"
+                                    onClick={() => handleChangeMaid(request)}
+                                  >
+                                    Change Maid
                                   </button>
                                 )}
                               </td>
@@ -961,6 +1138,8 @@ const MyBookings = () => {
           </div>
         </div>
       </div>
+
+      
     </div>
   );
 };
@@ -1044,14 +1223,17 @@ const ActiveMaidServices = () => {
   );
 };
 
-// Feedback Component
+// Feedback Component for Maid 
 const Feedback = () => {
   const [feedback, setFeedback] = useState([]);
   const [maids, setMaids] = useState([]);
+  const [tiffins, setTiffins] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [feedbackType, setFeedbackType] = useState('maid'); // 'maid' or 'tiffin'
   const [formData, setFormData] = useState({
     maidId: '',
+    tiffinId: '',
     rating: 5,
     feedback: ''
   });
@@ -1063,15 +1245,22 @@ const Feedback = () => {
 
   const fetchData = async () => {
     try {
-      const [feedbackResponse, maidsResponse] = await Promise.all([
+      const [maidFeedbackRes, maidsRes, tiffinFeedbackRes, tiffinsRes] = await Promise.all([
         api.get('/api/user/feedback'),
-        api.get('/api/user/maids')
+        api.get('/api/maid/available'),
+        api.get('/api/user/tiffin-feedback'),
+        api.get('/api/user/tiffins')
       ]);
-      setFeedback(feedbackResponse.data);
-      setMaids(maidsResponse.data);
+      // Combine feedbacks with a type property
+      const maidFeedback = (maidFeedbackRes.data || []).map(f => ({...f, type: 'maid'}));
+      const tiffinFeedback = (tiffinFeedbackRes.data || []).map(f => ({...f, type: 'tiffin'}));
+      setFeedback([...maidFeedback, ...tiffinFeedback].sort((a, b) => b.id - a.id));
+      setMaids(maidsRes.data);
+      setTiffins(tiffinsRes.data);
     } catch (error) {
       //console.error('Error fetching data:', error);
      Toast.error('Error loading feedback and maids: ');
+      console.error('Error fetching feedback data:', error);
     } finally {
       setLoading(false);
     }
@@ -1082,9 +1271,23 @@ const Feedback = () => {
     try {
               await api.post('/api/user/feedback', formData);
       Toast.success('Feedback submitted successfully!');
+      if (feedbackType === 'maid') {
+        await api.post('/api/user/feedback', {
+          maidId: formData.maidId,
+          rating: formData.rating,
+          feedback: formData.feedback
+        });
+      } else {
+        await api.post('/api/user/tiffin-feedback', {
+          tiffinId: formData.tiffinId,
+          rating: formData.rating,
+          feedback: formData.feedback
+        });
+      }
+      setMessage('Feedback submitted successfully!');
       setShowForm(false);
-      setFormData({ maidId: '', rating: 5, feedback: '' });
-      fetchData(); // Refresh the list
+      setFormData({ maidId: '', tiffinId: '', rating: 5, feedback: '' });
+      fetchData();
     } catch (error) {
       Toast.error('Error submitting feedback: ' + error.response?.data);
     }
@@ -1114,18 +1317,13 @@ const Feedback = () => {
           )}
         </div>
       </div>
-
       <div className="row mb-4">
         <div className="col-12">
-          <button 
-            className="btn btn-primary"
-            onClick={() => setShowForm(true)}
-          >
+          <button className="btn btn-primary" onClick={() => setShowForm(true)}>
             + Give New Feedback
           </button>
         </div>
       </div>
-
       {/* Feedback Form Modal */}
       {showForm && (
         <div className="card mb-4">
@@ -1135,27 +1333,58 @@ const Feedback = () => {
           <div className="card-body">
             <form onSubmit={handleSubmit}>
               <div className="mb-3">
-                <label className="form-label">Select Maid</label>
+                <label className="form-label">Feedback For</label>
                 <select
                   className="form-control"
-                  value={formData.maidId}
-                  onChange={(e) => setFormData({...formData, maidId: e.target.value})}
+                  value={feedbackType}
+                  onChange={e => setFeedbackType(e.target.value)}
                   required
                 >
-                  <option value="">Choose a maid...</option>
-                  {maids.map((maid) => (
-                    <option key={maid.id} value={maid.id}>
-                      {maid.name} - {maid.services}
-                    </option>
-                  ))}
+                  <option value="maid">Maid</option>
+                  <option value="tiffin">Tiffin</option>
                 </select>
               </div>
+              {feedbackType === 'maid' ? (
+                <div className="mb-3">
+                  <label className="form-label">Select Maid</label>
+                  <select
+                    className="form-control"
+                    value={formData.maidId}
+                    onChange={e => setFormData({ ...formData, maidId: e.target.value })}
+                    required
+                  >
+                    <option value="">Choose a maid...</option>
+                    {maids.map(maid => (
+                      <option key={maid.id} value={maid.id}>
+                        {maid.name || `Maid ${maid.id}`} - {maid.services || 'Services not specified'} ({maid.region || 'Region not specified'})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <div className="mb-3">
+                  <label className="form-label">Select Tiffin Provider</label>
+                  <select
+                    className="form-control"
+                    value={formData.tiffinId}
+                    onChange={e => setFormData({ ...formData, tiffinId: e.target.value })}
+                    required
+                  >
+                    <option value="">Choose a tiffin provider...</option>
+                    {tiffins.map(tiffin => (
+                      <option key={tiffin.id} value={tiffin.id}>
+                        {tiffin.name || `Tiffin ${tiffin.id}`} - {tiffin.foodCategory || 'Category not specified'} ({tiffin.region || 'Region not specified'})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <div className="mb-3">
                 <label className="form-label">Rating</label>
                 <select
                   className="form-control"
                   value={formData.rating}
-                  onChange={(e) => setFormData({...formData, rating: parseInt(e.target.value)})}
+                  onChange={e => setFormData({ ...formData, rating: parseInt(e.target.value) })}
                   required
                 >
                   <option value={5}>⭐⭐⭐⭐⭐ (5 stars)</option>
@@ -1171,7 +1400,7 @@ const Feedback = () => {
                   className="form-control"
                   rows="3"
                   value={formData.feedback}
-                  onChange={(e) => setFormData({...formData, feedback: e.target.value})}
+                  onChange={e => setFormData({ ...formData, feedback: e.target.value })}
                   required
                 ></textarea>
               </div>
@@ -1179,8 +1408,8 @@ const Feedback = () => {
                 <button type="submit" className="btn btn-success">
                   Submit Feedback
                 </button>
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   className="btn btn-secondary"
                   onClick={() => setShowForm(false)}
                 >
@@ -1191,7 +1420,6 @@ const Feedback = () => {
           </div>
         </div>
       )}
-
       {/* Feedback List */}
       <div className="row">
         <div className="col-12">
@@ -1199,15 +1427,18 @@ const Feedback = () => {
           {feedback.length > 0 ? (
             <div className="card">
               <div className="card-body">
-                {feedback.map((item) => (
-                  <div key={item.id} className="border-bottom pb-3 mb-3">
+                {feedback.map(item => (
+                  <div key={item.id + '-' + item.type} className="border-bottom pb-3 mb-3">
                     <div className="d-flex justify-content-between align-items-start">
                       <div>
-                        <h6>{item.maid?.name || 'Unknown Maid'}</h6>
-                        <div className="text-warning">
-                          {'⭐'.repeat(item.rating)}
-                        </div>
+                        <h6>
+                          {item.type === 'maid'
+                            ? (item.maid?.name || 'Unknown Maid')
+                            : (item.tiffin?.name || 'Unknown Tiffin')}
+                        </h6>
+                        <div className="text-warning">{'⭐'.repeat(item.rating)}</div>
                         <p className="mt-2">{item.feedback}</p>
+                        <span className="badge bg-info text-dark">{item.type === 'maid' ? 'Maid' : 'Tiffin'}</span>
                       </div>
                       <small className="text-muted">
                         {new Date(item.id).toLocaleDateString()}
@@ -1233,12 +1464,17 @@ const Feedback = () => {
 
 
 
+
+
+
+
 // Main UserDashboard Component
 function UserDashboard() {
   return (
     <div className="user-dashboard">
       <Routes>
         <Route path="/dashboard" element={<DashboardHome />} />
+        <Route path="/profile" element={<UserProfile />} />
         <Route path="/pgs" element={<PGInterests />} />
         <Route path="/tiffins" element={<TiffinServices />} />
         <Route path="/tiffins/requests" element={<TiffinRequests />} />

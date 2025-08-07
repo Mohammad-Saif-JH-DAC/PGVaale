@@ -7,7 +7,7 @@ import Toast from '../utils/Toast';
 const allowedRegions = ['Mumbai', 'Delhi', 'Pune', 'Bangalore', 'Hyderabad'];
 
 function Chat() {
-  const token = localStorage.getItem('token');
+  const token = sessionStorage.getItem('token');
   let username = '';
   let userRole = '';
 

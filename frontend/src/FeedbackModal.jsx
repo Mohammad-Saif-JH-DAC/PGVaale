@@ -7,7 +7,7 @@ function FeedbackModal({ show, onClose, onSubmit }) {
   const [feedback, setFeedback] = useState('');
   
   // Check if user is authenticated
-  const token = localStorage.getItem('token');
+  const token = sessionStorage.getItem('token');
   const isAuthenticated = !!token;
 
   const emojiMap = {
@@ -32,7 +32,7 @@ function FeedbackModal({ show, onClose, onSubmit }) {
   }
 
   try {
-    const response = await fetch('http://localhost:8081/api/feedback', {
+    const response = await fetch('http://localhost:8081/api/feedback-web', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

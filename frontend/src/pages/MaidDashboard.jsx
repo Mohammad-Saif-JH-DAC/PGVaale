@@ -2,8 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Routes, Route, Link, useNavigate } from 'react-router-dom';
 import api from '../api';
 import './MaidDashboard.css';
-import Toast from '../utils/Toast';
-
 
 // Dashboard Home Component
 const DashboardHome = () => {
@@ -21,7 +19,7 @@ const DashboardHome = () => {
       const response = await api.get('/api/maid/dashboard');
       setDashboardData(response.data);
     } catch (error) {
-      console.error('Error fetching dashboard data:', error);
+      Toast.error('Error fetching dashboard data:', error);
     }
   };
 
@@ -30,7 +28,7 @@ const DashboardHome = () => {
       const response = await api.get('/api/maid/profile');
       setProfile(response.data);
     } catch (error) {
-      console.error('Error fetching profile:', error);
+      Toast.error('Error fetching profile:', error);
     } finally {
       setLoading(false);
     }
@@ -122,9 +120,9 @@ const DashboardHome = () => {
                         <strong>New request from {request.user?.name || 'User'}</strong>
                         <small className="text-muted d-block">
                           {request.status === 'PENDING' ? 'Service not accepted yet' : 
-                           request.serviceDate ? new Date(request.serviceDate).toLocaleDateString() : 
+                           request.startDate ? new Date(request.startDate).toLocaleDateString() : 
                            request.assignedDateTime ? new Date(request.assignedDateTime).toLocaleDateString() : 
-                           'Date not specified'} - {request.timeSlot || 'Time not specified'}
+                           'Date not specified'} - {profile?.timing || 'My timing not set'}
                         </small>
                       </div>
                       <div className="activity-status">
@@ -161,6 +159,8 @@ const Profile = () => {
   const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState({});
   const [message, setMessage] = useState('');
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
 
   useEffect(() => {
     fetchProfile();
@@ -172,8 +172,8 @@ const Profile = () => {
       setProfile(response.data);
       setFormData(response.data);
     } catch (error) {
-      console.error('Error fetching profile:', error);
-      setMessage('Error loading profile: ' + error.response?.data);
+      Toast.error('Error fetching profile:', error);
+      Toast.info('Error loading profile: ' + error.response?.data);
     } finally {
       setLoading(false);
     }
@@ -186,6 +186,8 @@ const Profile = () => {
     });
   };
 
+
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -195,6 +197,32 @@ const Profile = () => {
       fetchProfile(); // Refresh profile data
     } catch (error) {
       Toast.error('Error updating profile: ' + error.response?.data);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmText !== 'DELETE') {
+      setMessage('Please type DELETE to confirm account deletion.');
+      return;
+    }
+
+    try {
+      // Delete maid account
+      await api.delete('/api/maid/profile');
+      
+      // Clear session
+      sessionStorage.removeItem('token');
+      sessionStorage.removeItem('userRole');
+      
+      // Show success and redirect
+      setMessage('Your account has been deleted successfully.');
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 2000);
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      setMessage('Failed to delete account. Please try again.');
+      setShowDeleteModal(false);
     }
   };
 
@@ -365,10 +393,71 @@ const Profile = () => {
                 </span>
                 <span>{profile?.approved ? 'Approved' : 'Pending Approval'}</span>
               </div>
+              <hr />
+              <div className="d-grid">
+                <button
+                  className="btn btn-danger"
+                  onClick={() => setShowDeleteModal(true)}
+                >
+                  🗑️ Delete Account
+                </button>
+              </div>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Delete Account Modal */}
+      {showDeleteModal && (
+        <div className="modal fade show" style={{display: 'block'}}>
+          <div className="modal-dialog">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title text-danger">⚠️ Delete Account</h5>
+                <button
+                  type="button"
+                  className="btn-close"
+                  onClick={() => setShowDeleteModal(false)}
+                ></button>
+              </div>
+              <div className="modal-body">
+                <div className="alert alert-danger">
+                  <strong>Warning:</strong> This action cannot be undone. All your data will be permanently deleted.
+                </div>
+                <p>To confirm deletion, please type <strong>DELETE</strong> in the box below:</p>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={deleteConfirmText}
+                  onChange={(e) => setDeleteConfirmText(e.target.value)}
+                  placeholder="Type DELETE to confirm"
+                />
+              </div>
+              <div className="modal-footer">
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setShowDeleteModal(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-danger"
+                  onClick={handleDeleteAccount}
+                >
+                  Delete Account
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Backdrop */}
+      {showDeleteModal && (
+        <div className="modal-backdrop fade show"></div>
+      )}
     </div>
   );
 };
@@ -378,9 +467,11 @@ const ServiceRequests = () => {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState('all');
+  const [profile, setProfile] = useState(null);
 
   useEffect(() => {
     fetchRequests();
+    fetchProfile();
   }, [filterStatus]);
 
     const fetchRequests = async () => {
@@ -396,6 +487,15 @@ const ServiceRequests = () => {
       Toast.error('Error fetching requests:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchProfile = async () => {
+    try {
+      const response = await api.get('/api/maid/profile');
+      setProfile(response.data);
+    } catch (error) {
+      console.error('Error fetching profile:', error);
     }
   };
 
@@ -466,13 +566,6 @@ const ServiceRequests = () => {
               >
                 Rejected
               </button>
-              <button
-                type="button"
-                className={`btn btn-outline-secondary ${filterStatus === 'CANCELLED' ? 'active' : ''}`}
-                onClick={() => setFilterStatus('CANCELLED')}
-              >
-                Cancelled
-              </button>
             </div>
           </div>
         </div>
@@ -488,10 +581,12 @@ const ServiceRequests = () => {
                     <thead>
                       <tr>
                         <th>User</th>
-                        <th>Service Date</th>
+                        <th>Start Date</th>
+                        <th>End Date</th>
                         <th>My Timing</th>
                         <th>Address</th>
                         <th>Request Date</th>
+                        <th>Accept Date</th>
                         <th>Status</th>
                         <th>Actions</th>
                       </tr>
@@ -500,14 +595,16 @@ const ServiceRequests = () => {
                       {requests.map((request) => (
                         <tr key={request.id}>
                           <td>{request.user?.name || 'Unknown User'}</td>
-                          <td>{new Date(request.serviceDate).toLocaleDateString()}</td>
-                          <td>{request.timeSlot || 'Not specified'}</td>
+                          <td>{request.startDate ? new Date(request.startDate).toLocaleDateString() : 'N/A'}</td>
+                          <td>{request.endDate ? new Date(request.endDate).toLocaleDateString() : 'N/A'}</td>
+                          <td>{profile?.timing || 'My timing not set'}</td>
                           <td>
                             <span className="text-muted small">
                               {request.userAddress || 'No address provided'}
                             </span>
                           </td>
                           <td>{new Date(request.assignedDateTime).toLocaleDateString()}</td>
+                          <td>{request.acceptedDateTime ? new Date(request.acceptedDateTime).toLocaleDateString() : '-'}</td>
                           <td>
                             <span className={`badge ${getStatusBadgeClass(request.status)}`}>
                               {request.status}

@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, Link, useNavigate } from 'react-router-dom';
+import { Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
 import api from '../api';
 import './TiffinDashboard.css';
+import TiffinNavigationModal from './TiffinNavigationModal'; // import the new component
+
 
 // Dashboard Home Component
 const DashboardHome = () => {
@@ -154,6 +156,8 @@ const Profile = () => {
   const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState({});
   const [message, setMessage] = useState('');
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
 
   useEffect(() => {
     fetchProfile();
@@ -191,6 +195,32 @@ const Profile = () => {
     }
   };
 
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmText !== 'DELETE') {
+      setMessage('Please type DELETE to confirm account deletion.');
+      return;
+    }
+
+    try {
+      // Delete tiffin account
+      await api.delete('/api/tiffin/profile');
+      
+      // Clear session
+      sessionStorage.removeItem('token');
+      sessionStorage.removeItem('userRole');
+      
+      // Show success and redirect
+      setMessage('Your account has been deleted successfully.');
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 2000);
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      setMessage('Failed to delete account. Please try again.');
+      setShowDeleteModal(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="container mt-5">
@@ -207,7 +237,6 @@ const Profile = () => {
     <div className="container mt-4">
       <div className="row">
         <div className="col-12">
-          <h2 className="mb-4">👤 Profile</h2>
           {message && (
             <div className={`alert alert-${message.includes('Error') ? 'danger' : 'success'}`}>
               {message}
@@ -344,15 +373,76 @@ const Profile = () => {
                 <span>Account Active</span>
               </div>
               <div className="d-flex align-items-center mb-3">
-                <span className={`badge bg-${profile?.approved ? 'success' : 'warning'} me-2`}>
-                  {profile?.approved ? '✓' : '⏳'}
+                <span className={`badge bg-${'success'} me-2`}>
+                  {profile?.approved ? '✓' : '✓'}
                 </span>
-                <span>{profile?.approved ? 'Approved' : 'Pending Approval'}</span>
+                <span>{profile?.approved ? 'Approved' : 'Approved'}</span>
+              </div>
+              <hr />
+              <div className="d-grid">
+                <button
+                  className="btn btn-danger"
+                  onClick={() => setShowDeleteModal(true)}
+                >
+                  🗑️ Delete Account
+                </button>
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Delete Account Modal */}
+      {showDeleteModal && (
+        <div className="modal fade show" style={{display: 'block'}}>
+          <div className="modal-dialog">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title text-danger">⚠️ Delete Account</h5>
+                <button
+                  type="button"
+                  className="btn-close"
+                  onClick={() => setShowDeleteModal(false)}
+                ></button>
+              </div>
+              <div className="modal-body">
+                <div className="alert alert-danger">
+                  <strong>Warning:</strong> This action cannot be undone. All your data will be permanently deleted.
+                </div>
+                <p>To confirm deletion, please type <strong>DELETE</strong> in the box below:</p>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={deleteConfirmText}
+                  onChange={(e) => setDeleteConfirmText(e.target.value)}
+                  placeholder="Type DELETE to confirm"
+                />
+              </div>
+              <div className="modal-footer">
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setShowDeleteModal(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-danger"
+                  onClick={handleDeleteAccount}
+                >
+                  Delete Account
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Backdrop */}
+      {showDeleteModal && (
+        <div className="modal-backdrop fade show"></div>
+      )}
     </div>
   );
 };
@@ -465,8 +555,7 @@ const MenuManagement = () => {
     <div className="container mt-4">
       <div className="row">
         <div className="col-12">
-          <div className="d-flex justify-content-between align-items-center mb-4">
-            <h2>🍽️ Menu Management</h2>
+          <div className="d-flex justify-content-end mb-4">
             <button
               className="btn btn-primary"
               onClick={() => setShowMenuForm(true)}
@@ -765,7 +854,6 @@ const ServiceRequests = () => {
     <div className="container mt-4">
       <div className="row">
         <div className="col-12">
-          <h2 className="mb-4">📋 Service Requests</h2>
           <div className="mb-3">
             <div className="btn-group" role="group">
               <button
@@ -876,27 +964,32 @@ const ServiceRequests = () => {
 // Navigation Component
 const TiffinNavigation = () => {
   const navigate = useNavigate();
-  const location = window.location.pathname;
+  const location = useLocation();
+
+  // Determine the page title based on the current route
+  let pageTitle = '🍽️ Tiffin Dashboard';
+  if (location.pathname.includes('/menu')) pageTitle = '🍽️ Menu Management';
+  else if (location.pathname.includes('/requests')) pageTitle = '📋 Service Requests';
+  else if (location.pathname.includes('/profile')) pageTitle = '👤 Profile';
 
   const navItems = [
-    { path: '/tiffin-dashboard', label: '🏠 Dashboard', icon: '🏠' },
-    { path: '/tiffin-dashboard/menu', label: '🍽️ Menu Management', icon: '🍽️' },
-    { path: '/tiffin-dashboard/requests', label: '📋 Service Requests', icon: '📋' },
-    { path: '/tiffin-dashboard/profile', label: '👤 Profile', icon: '👤' }
+    { path: '/tiffin-dashboard/menu', label: 'Menu Management', icon: '🍽️' },
+    { path: '/tiffin-dashboard/requests', label: 'Service Requests', icon: '📋' },
+    { path: '/tiffin-dashboard/profile', label: 'Profile', icon: '👤' }
   ];
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('userRole');
+    sessionStorage.removeItem('token');
+    sessionStorage.removeItem('userRole');
     navigate('/login');
   };
 
   return (
     <nav className="navbar navbar-expand-lg navbar-dark bg-primary">
       <div className="container">
-        <a className="navbar-brand" href="/tiffin-dashboard">
-          🍱 Tiffin Dashboard
-        </a>
+        <div className="navbar-brand">
+          <h4 className="mb-0">{pageTitle}</h4>
+        </div>
         
         <button 
           className="navbar-toggler" 
@@ -912,7 +1005,7 @@ const TiffinNavigation = () => {
             {navItems.map((item) => (
               <li key={item.path} className="nav-item">
                 <a 
-                  className={`nav-link ${location === item.path ? 'active' : ''}`}
+                  className={`nav-link ${location.pathname === item.path ? 'active' : ''}`}
                   href={item.path}
                 >
                   {item.icon} {item.label}
@@ -921,7 +1014,7 @@ const TiffinNavigation = () => {
             ))}
           </ul>
           
-          <ul className="navbar-nav">
+          {/* <ul className="navbar-nav">
             <li className="nav-item">
               <button 
                 className="btn btn-outline-light btn-sm"
@@ -930,7 +1023,7 @@ const TiffinNavigation = () => {
                 🚪 Logout
               </button>
             </li>
-          </ul>
+          </ul> */}
         </div>
       </div>
     </nav>
