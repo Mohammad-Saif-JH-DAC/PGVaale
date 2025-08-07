@@ -85,7 +85,7 @@ function PGRooms() {
   const handleBookRoom = async (roomId) => {
     const token = sessionStorage.getItem('token');
     if (!token) {
-      alert('Please log in to send interest.');
+      alert('Please log in to book PG.');
       return;
     }
 
@@ -287,7 +287,7 @@ function PGRooms() {
             <div className="d-flex align-items-center">
               <i className="fas fa-lightbulb text-primary me-3" style={{ fontSize: '1.5rem' }}></i>
               <div>
-                <strong>💡 Pro Tip:</strong> <Link to="/login" className="text-decoration-none fw-bold" style={{ color: '#4F46E5' }}>Log in</Link> to send interest and chat with owners!
+                <strong>💡 Pro Tip:</strong> <Link to="/login" className="text-decoration-none fw-bold" style={{ color: '#4F46E5' }}>Log in</Link> to book PG and chat with owners!
               </div>
             </div>
         </div>
@@ -472,16 +472,16 @@ function PGRooms() {
                             </>
                           ) : (
                             <>
-                              <i className="fas fa-heart me-2"></i>Send Interest
+                              <i className="fas fa-heart me-2"></i>Book PG
                             </>
                           )}
                       </button>
                     ) : (
                       <button
                           className="btn btn-outline-secondary flex-grow-1 rounded-3"
-                        onClick={() => alert('Please log in to send interest.')}
+                        onClick={() => alert('Please log in to book PG.')}
                       >
-                          <i className="fas fa-heart me-2"></i>Send Interest
+                          <i className="fas fa-heart me-2"></i>book PG
                       </button>
                     )}
                   </div>
