@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import DashboardStats from '../components/DashboardStats';
 import api from '../api';
+import Toast from '../utils/Toast';
+
 
 
 
@@ -20,7 +22,7 @@ function Admin() {
       setPendingMaid(maidRes.data || []);
       setPendingTiffin(tiffinRes.data || []);
     })
-    .catch(() => setError('Failed to load service providers'))
+    .catch(() => Toast.error('Failed to load service providers'))
     .finally(() => setLoading(false));
   }, []);
 
@@ -30,8 +32,9 @@ function Admin() {
       // Refresh the list
       const response = await api.get('/api/admin/maids/pending');
       setPendingMaid(response.data || []);
+      Toast.success('Maid approved successfully!');
     } catch (error) {
-      setError('Failed to approve maid');
+      Toast.error('Failed to approve maid');
     }
   };
 
@@ -41,8 +44,9 @@ function Admin() {
       // Refresh the list
       const response = await api.get('/api/admin/maids/pending');
       setPendingMaid(response.data || []);
+      Toast.success('Maid rejected successfully!');
     } catch (error) {
-      setError('Failed to reject maid');
+      Toast.error('Failed to reject maid');
     }
   };
 
@@ -52,8 +56,9 @@ function Admin() {
       // Refresh the list
       const response = await api.get('/api/admin/tiffins/pending');
       setPendingTiffin(response.data || []);
+      Toast.success('Tiffin provider approved!');
     } catch (error) {
-      setError('Failed to approve tiffin');
+      Toast.error('Failed to approve tiffin provider');
     }
   };
 
@@ -63,8 +68,9 @@ function Admin() {
       // Refresh the list
       const response = await api.get('/api/admin/tiffins/pending');
       setPendingTiffin(response.data || []);
+      Toast.success('Tiffin provider rejected!');
     } catch (error) {
-      setError('Failed to reject tiffin');
+      Toast.error('Failed to reject tiffin provider');
     }
   };
 

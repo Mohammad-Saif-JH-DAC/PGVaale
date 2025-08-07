@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Routes, Route, Link, useNavigate } from 'react-router-dom';
 import api from '../api';
 import './MaidDashboard.css';
+import Toast from '../utils/Toast';
+
 
 // Dashboard Home Component
 const DashboardHome = () => {
@@ -188,11 +190,11 @@ const Profile = () => {
     e.preventDefault();
     try {
               await api.post('/api/maid/profile', formData);
-      setMessage('Profile updated successfully!');
+      Toast.success('Profile updated successfully!');
       setIsEditing(false);
       fetchProfile(); // Refresh profile data
     } catch (error) {
-      setMessage('Error updating profile: ' + error.response?.data);
+      Toast.error('Error updating profile: ' + error.response?.data);
     }
   };
 
@@ -391,7 +393,7 @@ const ServiceRequests = () => {
       }
       setRequests(response.data);
     } catch (error) {
-      console.error('Error fetching requests:', error);
+      Toast.error('Error fetching requests:', error);
     } finally {
       setLoading(false);
     }
@@ -402,7 +404,7 @@ const ServiceRequests = () => {
       await api.post(`/api/maid/requests/${requestId}/status`, { status: newStatus });
       fetchRequests(); // Refresh the list
     } catch (error) {
-      console.error('Error updating request status:', error);
+      Toast.error('Error updating request status:', error);
     }
   };
 
