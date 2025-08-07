@@ -5,6 +5,7 @@ import 'leaflet/dist/leaflet.css';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import RoomDetailsModal from '../components/RoomDetailsModal';
+import Toast from '../utils/Toast';
 
 // Fix for Leaflet default icons
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
@@ -81,11 +82,46 @@ function PGRooms() {
     setSelectedRoom(null);
   };
 
+  //PDF Download
+  const downloadPdf = async (roomId) => {
+    const token = sessionStorage.getItem('token');
+    if (!token) {
+      Toast.error('Please log in to download contract.');
+      return;
+    }
+
+    try {
+      const response = await api.get(`/api/pdf/generate/${roomId}`, {
+        responseType: 'blob', // Important for handling binary data
+      });
+      
+      const file = new Blob([response.data], { type: 'application/pdf' });
+      const fileURL = URL.createObjectURL(file);
+  
+      // Option 1: Open PDF in new tab
+      // window.open(fileURL);
+  
+      // Option 2: Download PDF
+      const link = document.createElement('a');
+      link.href = fileURL;
+      link.setAttribute('download', `booking_contract_room_${roomId}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      
+      Toast.success('Contract downloaded successfully!');
+    } catch (error) {
+      console.error('Error downloading PDF', error);
+      Toast.error('Failed to download contract. Please try again.');
+    }
+  }
+
   // Handle booking room
   const handleBookRoom = async (roomId) => {
     const token = sessionStorage.getItem('token');
     if (!token) {
-      alert('Please log in to book PG.');
+      //alert('Please log in to book PG.');
+      Toast.error('Please log in to book PG.');
       return;
     }
 
@@ -95,6 +131,8 @@ function PGRooms() {
       // Call the new PG booking endpoint that updates user_id and availability
       await api.post(`/api/pg/${roomId}/book`);
       setBookingStatus((prev) => ({ ...prev, [roomId]: 'booked' }));
+      Toast.success('PG booked successfully!');
+      downloadPdf(roomId);
       
       // Refresh the rooms list to show updated availability
       fetchRooms();

@@ -91,6 +91,7 @@ public class SecurityConfig {
                                 "/api/pg/region/**",
                                 "/api/pgrooms/**",
                                 "/api/room-interests/**",
+                                "/api/pdf/**",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
                                 "/api/contactUs/**",

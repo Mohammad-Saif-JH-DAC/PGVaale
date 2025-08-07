@@ -285,7 +285,11 @@ public class PGController {
         } catch (Exception e) {
             System.out.println("DEBUG: Exception occurred: " + e.getMessage());
             e.printStackTrace();
-            return ResponseEntity.badRequest().body("Error booking PG: " + e.getMessage());
+            return ResponseEntity.status(500).body(Map.of(
+                "error", "Internal server error",
+                "message", e.getMessage(),
+                "pgId", pgId
+            ));
         }
     }
     

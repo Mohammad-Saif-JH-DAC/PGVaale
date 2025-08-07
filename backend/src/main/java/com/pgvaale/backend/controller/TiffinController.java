@@ -166,8 +166,13 @@ public class TiffinController {
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
             String username = auth.getName();
             
-            // You'll need to implement this based on your auth setup
-            return ResponseEntity.ok(Map.of("username", username, "message", "Profile endpoint"));
+            Optional<Tiffin> tiffinOptional = tiffinRepository.findByUsername(username);
+            if (!tiffinOptional.isPresent()) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            Tiffin tiffin = tiffinOptional.get();
+            return ResponseEntity.ok(tiffin);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error fetching profile: " + e.getMessage());
         }
@@ -176,8 +181,53 @@ public class TiffinController {
     @PostMapping("/profile")
     public ResponseEntity<?> updateProfile(@RequestBody Map<String, Object> profileData) {
         try {
-            // Implement profile update logic
-            return ResponseEntity.ok("Profile updated successfully");
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            String username = auth.getName();
+            
+            Optional<Tiffin> tiffinOptional = tiffinRepository.findByUsername(username);
+            if (!tiffinOptional.isPresent()) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            Tiffin tiffin = tiffinOptional.get();
+            
+            // Update profile fields
+            if (profileData.containsKey("name")) {
+                tiffin.setName((String) profileData.get("name"));
+            }
+            if (profileData.containsKey("email")) {
+                tiffin.setEmail((String) profileData.get("email"));
+            }
+            if (profileData.containsKey("phoneNumber")) {
+                tiffin.setPhoneNumber((String) profileData.get("phoneNumber"));
+            }
+            if (profileData.containsKey("aadhaar")) {
+                tiffin.setAadhaar((String) profileData.get("aadhaar"));
+            }
+            if (profileData.containsKey("price")) {
+                Object priceObj = profileData.get("price");
+                if (priceObj instanceof Number) {
+                    tiffin.setPrice(((Number) priceObj).doubleValue());
+                } else if (priceObj instanceof String) {
+                    try {
+                        tiffin.setPrice(Double.parseDouble((String) priceObj));
+                    } catch (NumberFormatException e) {
+                        return ResponseEntity.badRequest().body("Invalid price format");
+                    }
+                }
+            }
+            if (profileData.containsKey("foodCategory")) {
+                tiffin.setFoodCategory((String) profileData.get("foodCategory"));
+            }
+            if (profileData.containsKey("region")) {
+                tiffin.setRegion((String) profileData.get("region"));
+            }
+            if (profileData.containsKey("maidAddress")) {
+                tiffin.setMaidAddress((String) profileData.get("maidAddress"));
+            }
+            
+            Tiffin updatedTiffin = tiffinRepository.save(tiffin);
+            return ResponseEntity.ok(updatedTiffin);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error updating profile: " + e.getMessage());
         }

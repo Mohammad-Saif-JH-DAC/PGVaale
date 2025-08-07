@@ -66,7 +66,10 @@ function Navigation() {
         </button>
         <div className="collapse navbar-collapse" id="navbarNav">
           <ul className="navbar-nav ms-auto mb-2 mb-lg-0">
-            {userRole !== 'owner' && (
+          <li className="nav-item">
+    <Link className="nav-link" to="/">Home</Link>
+  </li>
+            {userRole !== 'owner' || userRole !== 'tiffin' || userRole !== 'maid' && (
   <li className="nav-item">
     <Link className="nav-link" to="/pgrooms">PG Rooms</Link>
   </li>
@@ -103,7 +106,7 @@ function Navigation() {
                   <Link className="nav-link" to="/user-dashboard">Dashboard</Link>
                 </li>
                 <li className="nav-item">
-                  <Link className="nav-link" to="/user-dashboard/pgs">PG Interests</Link>
+                  <Link className="nav-link" to="/user-dashboard/pgs">PG Booking</Link>
                 </li>
                
                
@@ -127,7 +130,7 @@ function Navigation() {
                 </li>
               </>
             )}
-            {token && userRole !== 'owner' && (
+            {token && userRole != 'owner'||userRole != 'tiffin'||userRole != 'maid' && (
               <li className="nav-item">
                 <Link className="nav-link" to="/chat">Group Chat</Link>
               </li>
