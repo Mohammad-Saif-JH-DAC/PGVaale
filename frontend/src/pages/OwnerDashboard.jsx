@@ -7,6 +7,9 @@ import { Link } from 'react-router-dom';
 import 'leaflet/dist/leaflet.css';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
+import Toast from '../utils/Toast'; 
+
+
 
 // Fix for default marker icons in React-Leaflet
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
@@ -89,11 +92,11 @@ const handleSaveProfile = async () => {
     await api.put(`/api/owners/${ownerId}`, profileForm);
     setOwnerDetails(profileForm); // Update displayed data
     setIsEditingProfile(false);
-    setError('Profile updated successfully.');
+    Toast.success('Profile updated successfully.');
     setTimeout(() => setError(''), 3000);
   } catch (err) {
     console.error('Error updating profile:', err);
-    setError('Failed to update profile: ' + (err.response?.data || err.message));
+    Toast.error('Failed to update profile: ' + (err.response?.data || err.message));
   }
 };
 
@@ -105,7 +108,7 @@ const handleSaveProfile = async () => {
       if (!isMounted) return;
 
       if (!username) {
-        setError('User not authenticated. Please log in as an owner.');
+        Toast.error('User not authenticated. Please log in as an owner.');
         setLoading(false);
         return;
       }
@@ -123,7 +126,7 @@ const handleSaveProfile = async () => {
       }
 
       if (!hasOwnerRole) {
-        setError('You need to be logged in as an owner.');
+        Toast.error('You need to be logged in as an owner.');
         setLoading(false);
         return;
       }
@@ -142,7 +145,7 @@ const handleSaveProfile = async () => {
       } catch (err) {
         console.error('Error fetching data:', err);
         const message = err.response?.data?.message || err.response?.data || err.message;
-        if (isMounted) setError(message);
+        if (isMounted) Toast.error(message);
         if (isMounted) setRooms([]);
       } finally {
         if (isMounted) setLoading(false);
@@ -173,21 +176,21 @@ const handleSaveProfile = async () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!ownerId) {
-      setError('Owner ID missing.');
+      Toast.error('Owner ID missing.');
       return;
     }
 
     const validImages = form.imagePaths.filter((url) => url.trim() !== '');
     if (validImages.length === 0) {
-      setError('At least one image URL is required.');
+      Toast.warn('At least one image URL is required.');
       return;
     }
     if (validImages.length > 5) {
-      setError('Maximum of 5 image URLs allowed.');
+      Toast.info('Maximum of 5 image URLs allowed.');
       return;
     }
     if (!form.region) {
-      setError('Please select a region.');
+      Toast.warn('Please select a region.');
       return;
     }
 
@@ -207,10 +210,10 @@ const handleSaveProfile = async () => {
     try {
       if (editingId) {
         await api.put(`/api/pg/${editingId}`, dataToSend);
-        setError('PG updated successfully.');
+        Toast.success('PG updated successfully.');
       } else {
         await api.post('/api/pg/register', dataToSend);
-        setError('PG registered successfully.');
+        Toast.success('PG registered successfully.');
       }
 
       // Refetch updated list
@@ -234,8 +237,8 @@ const handleSaveProfile = async () => {
 
       setTimeout(() => setError(''), 3000);
     } catch (err) {
-      console.error('Error saving PG:', err);
-      setError(err.response?.data || err.message);
+      Toast.error('Error saving PG:', err);
+      Toast.error(err.response?.data || err.message);
     }
   };
 
@@ -262,11 +265,11 @@ const handleSaveProfile = async () => {
     try {
       await api.delete(`/api/pg/${id}`);
       setRooms(rooms.filter((r) => r.id !== id));
-      setError('PG deleted successfully.');
+      Toast.success('PG deleted successfully.');
       setTimeout(() => setError(''), 3000);
     } catch (err) {
-      console.error('Delete PG:', err);
-      setError(err.response?.data || err.message);
+     Toast.error('Delete PG:', err);
+      Toast.error(err.response?.data || err.message);
     }
   };
 
@@ -278,7 +281,7 @@ const handleDeleteAccount = async () => {
         try {
           await api.delete(`/api/pg/${pg.id}`);
         } catch (err) {
-          console.warn(`Failed to delete PG ${pg.id}`, err);
+          Toast.warn(`Failed to delete PG ${pg.id}`, err);
         }
       });
       await Promise.all(deletePgPromises);
@@ -293,13 +296,13 @@ const handleDeleteAccount = async () => {
     localStorage.removeItem('token');
 
     // Step 4: Show success and redirect
-    setError('Your account has been deleted successfully.');
+    Toast.success('Your account has been deleted successfully.');
     setTimeout(() => {
       window.location.href = '/'; // Redirect to home
     }, 2000);
   } catch (err) {
     console.error('Error deleting account:', err);
-    setError('Failed to delete account. Please try again.');
+    Toast.error('Failed to delete account. Please try again.');
     setShowDeleteModal(false);
   }
 };

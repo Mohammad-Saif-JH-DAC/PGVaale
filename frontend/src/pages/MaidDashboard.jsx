@@ -19,7 +19,7 @@ const DashboardHome = () => {
       const response = await api.get('/api/maid/dashboard');
       setDashboardData(response.data);
     } catch (error) {
-      console.error('Error fetching dashboard data:', error);
+      Toast.error('Error fetching dashboard data:', error);
     }
   };
 
@@ -28,7 +28,7 @@ const DashboardHome = () => {
       const response = await api.get('/api/maid/profile');
       setProfile(response.data);
     } catch (error) {
-      console.error('Error fetching profile:', error);
+      Toast.error('Error fetching profile:', error);
     } finally {
       setLoading(false);
     }
@@ -219,8 +219,8 @@ const Profile = () => {
       setProfile(response.data);
       setFormData(response.data);
     } catch (error) {
-      console.error('Error fetching profile:', error);
-      setMessage('Error loading profile: ' + error.response?.data);
+      Toast.error('Error fetching profile:', error);
+      Toast.info('Error loading profile: ' + error.response?.data);
     } finally {
       setLoading(false);
     }
@@ -238,13 +238,12 @@ const Profile = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await api.post('/api/maid/profile', formData);
-      setMessage('Profile updated successfully!');
+              await api.post('/api/maid/profile', formData);
+      Toast.success('Profile updated successfully!');
       setIsEditing(false);
       fetchProfile(); // Refresh profile data
     } catch (error) {
-
-      setMessage('Error updating profile: ' + error.response?.data);
+      Toast.error('Error updating profile: ' + error.response?.data);
     }
   };
 
@@ -532,7 +531,7 @@ const ServiceRequests = () => {
       }
       setRequests(response.data);
     } catch (error) {
-      console.error('Error fetching requests:', error);
+      Toast.error('Error fetching requests:', error);
     } finally {
       setLoading(false);
     }
@@ -552,7 +551,7 @@ const ServiceRequests = () => {
       await api.post(`/api/maid/requests/${requestId}/status`, { status: newStatus });
       fetchRequests(); // Refresh the list
     } catch (error) {
-      console.error('Error updating request status:', error);
+      Toast.error('Error updating request status:', error);
     }
   };
 

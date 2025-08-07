@@ -2,6 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import api from '../api';
 import './UserDashboard.css';
+import Toast from '../utils/Toast';
+
+
+
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -61,10 +65,12 @@ const DashboardHome = () => {
       });
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
+      Toast.error('Error loading dashboard data: ' + (error.response?.data || error.message));
       
       // Handle 403 specifically
       if (error.response?.status === 403) {
         console.error('403 Forbidden - User not authorized or token invalid');
+        Toast.error('You are not authorized to view this data. Please log in.');
         // Set fallback data for logged-in users
         setDashboardData({
           userName: 'User',
@@ -266,6 +272,8 @@ const PGInterests = () => {
       const response = await api.get('/api/pg/user/booked');
       setBookedPGs(response.data);
     } catch (error) {
+      //console.error('Error fetching PG interests:', error);
+      Toast.error('Error loading PG interests: ' + (error.response?.data || error.message));
       console.error('Error fetching booked PGs:', error);
       if (error.response?.status === 401) {
         sessionStorage.removeItem('token');
@@ -432,6 +440,7 @@ const TiffinServices = () => {
       setTiffins(response.data);
     } catch (error) {
       console.error('Error fetching tiffin services:', error);
+      Toast.error('Error loading tiffin services: ' + (error.response?.data || error.message));
     } finally {
       setLoading(false);
     }
@@ -446,13 +455,13 @@ const TiffinServices = () => {
     e.preventDefault();
     try {
       await api.post(`/api/user/tiffins/${selectedTiffin.id}/request`);
-      setMessage(`Request sent to ${selectedTiffin.name}!`);
+      Toast.info(`Request sent to ${selectedTiffin.name}!`);
       setShowTiffinModal(false);
       setSelectedTiffin(null);
-      
+      Toast.success('Request sent successfully!');
       setTimeout(() => setMessage(''), 3000);
     } catch (error) {
-      setMessage('Error sending request: ' + error.response?.data);
+      Toast.error('Error sending request: ' + error.response?.data);
     }
   };
 
@@ -574,7 +583,8 @@ const TiffinRequests = () => {
       }
       setRequests(response.data);
     } catch (error) {
-      console.error('Error fetching requests:', error);
+      //console.error('Error fetching requests:', error);
+      Toast.error('Error loading tiffin requests: ' + (error.response?.data || error.message));
     } finally {
       setLoading(false);
     }
@@ -585,9 +595,9 @@ const TiffinRequests = () => {
       try {
         await api.delete(`/api/user/requests/${requestId}`);
         fetchRequests(); // Refresh the list
-        alert('Request cancelled successfully');
+       Toast.info('Request cancelled successfully');
       } catch (error) {
-        alert('Error cancelling request: ' + error.response?.data);
+        Toast.error('Error cancelling request: ' + error.response?.data);
       }
     }
   };
@@ -739,7 +749,8 @@ const MaidServices = () => {
       const response = await api.get('/api/maid/available');
       setMaids(response.data);
     } catch (error) {
-      console.error('Error fetching maids:', error);
+      //console.error('Error fetching maids:', error);
+      Toast.error('Error loading maid services: ' + (error.response?.data || error.message));
     } finally {
       setLoading(false);
     }
@@ -784,9 +795,10 @@ const MaidServices = () => {
       
       // Show success message
       setTimeout(() => setMessage(''), 3000);
+      Toast.success('Maid hired successfully!');
     } catch (error) {
-      setMessage('Error hiring maid: ' + (error.response?.data || error.message));
-    }
+      Toast.error('Error hiring maid');
+      setMessage('Error hiring maid: ' + (error.response?.data || error.message));}
   };
 
   if (loading) {
@@ -967,7 +979,8 @@ const MyBookings = () => {
               const response = await api.get('/api/user/bookings');
       setBookings(response.data);
     } catch (error) {
-      console.error('Error fetching bookings:', error);
+      //console.error('Error fetching bookings:', error);
+      Toast.error('Error loading bookings: ' + (error.response?.data || error.message));
     } finally {
       setLoading(false);
     }
@@ -982,9 +995,9 @@ const MyBookings = () => {
           await api.delete(`/api/user/requests/${requestId}`);
         }
         fetchBookings(); // Refresh the list
-        alert('Request cancelled successfully');
+        Toast.success('Request cancelled successfully');
       } catch (error) {
-        alert('Error cancelling request: ' + error.response?.data);
+        Toast.error('Error cancelling request: ' + error.response?.data);
       }
     }
   };
@@ -1245,8 +1258,10 @@ const ActiveMaidServices = () => {
     try {
       const response = await api.get('/api/user/maids/active');
       setActiveServices(response.data);
+      //Toast.success('Active maid services loaded successfully!');
     } catch (error) {
-      console.error('Error fetching active services:', error);
+      //console.error('Error fetching active services:', error);
+      Toast.error('Error loading active maid services: ' + (error.response?.data || error.message));
     } finally {
       setLoading(false);
     }
@@ -1344,6 +1359,8 @@ const Feedback = () => {
       setMaids(maidsRes.data);
       setTiffins(tiffinsRes.data);
     } catch (error) {
+      //console.error('Error fetching data:', error);
+     Toast.error('Error loading feedback and maids: ');
       console.error('Error fetching feedback data:', error);
     } finally {
       setLoading(false);
@@ -1353,6 +1370,8 @@ const Feedback = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+              await api.post('/api/user/feedback', formData);
+      Toast.success('Feedback submitted successfully!');
       if (feedbackType === 'maid') {
         await api.post('/api/user/feedback', {
           maidId: formData.maidId,
@@ -1371,7 +1390,7 @@ const Feedback = () => {
       setFormData({ maidId: '', tiffinId: '', rating: 5, feedback: '' });
       fetchData();
     } catch (error) {
-      setMessage('Error submitting feedback: ' + error.response?.data);
+      Toast.error('Error submitting feedback: ' + error.response?.data);
     }
   };
 
