@@ -78,10 +78,17 @@ const DashboardHome = () => {
 
   if (loading) {
     return (
-      <div className="container mt-5">
-        <div className="text-center">
-          <div className="spinner-border" role="status">
-            <span className="visually-hidden">Loading...</span>
+      <div style={{
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, #f8fafc 0%, #e0e7ff 100%)',
+        paddingTop: '2rem',
+        paddingBottom: '2rem'
+      }}>
+        <div className="container">
+          <div className="text-center">
+            <div className="spinner-border text-primary" role="status">
+              <span className="visually-hidden">Loading...</span>
+            </div>
           </div>
         </div>
       </div>
@@ -89,57 +96,151 @@ const DashboardHome = () => {
   }
 
   return (
-    <div className="container mt-4">
-      <div className="row">
-        <div className="col-12">
-          <h2 className="mb-4">
-            👋 Welcome, {dashboardData?.userName || 'User'}!
-          </h2>
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #f8fafc 0%, #e0e7ff 100%)',
+      paddingTop: '2rem',
+      paddingBottom: '2rem'
+    }}>
+      <div className="container">
+        {/* Header Section */}
+        <div className="text-center mb-5">
+          <h1 className="display-5 fw-bold mb-3" style={{ color: '#2C3E50' }}>
+            👋 Welcome, <span className="text-primary">{dashboardData?.userName || 'User'}</span>!
+          </h1>
+          <p className="lead text-muted mb-4">
+            Your personal dashboard for managing PG rooms, tiffin services, and maid bookings
+          </p>
         </div>
-      </div>
 
-
-      <div className="row">
-        <div className="col-12">
-          <div className="card">
-            <div className="card-header">
-              <h5>🚀 Quick Actions</h5>
-            </div>
-            <div className="card-body">
-              <div className="row">
-                <div className="col-md-3 mb-3">
-                  <a href="/pgrooms" className="btn btn-outline-primary w-100">
-                    🏠 Browse PG Rooms
-                  </a>
-                </div>
-                <div className="col-md-3 mb-3">
-                  <a href="/user-dashboard/tiffins" className="btn btn-outline-warning w-100">
-                    🍱 Order Tiffin
-                  </a>
-                </div>
-                <div className="col-md-3 mb-3">
-                  <a href="/maid-hiring" className="btn btn-outline-success w-100">
-                    🧹 Hire Maid Service
-                  </a>
-                </div>
-                <div className="col-md-3 mb-3">
-                  <a href="/user-dashboard/bookings" className="btn btn-outline-info w-100">
-                    📋 My Bookings
-                  </a>
-                </div>
+        {/* Quick Actions Card */}
+        <div className="card border-0 shadow-lg rounded-4 mb-5" style={{ 
+          background: 'rgba(255, 255, 255, 0.9)', 
+          backdropFilter: 'blur(10px)' 
+        }}>
+          <div className="card-header border-0 bg-transparent">
+            <h5 className="fw-bold mb-0" style={{ color: '#2C3E50' }}>
+              <i className="fas fa-rocket text-primary me-2"></i>Quick Actions
+            </h5>
+          </div>
+          <div className="card-body p-4">
+            <div className="row g-3">
+              <div className="col-md-3 mb-3">
+                <a href="/pgrooms" className="btn btn-outline-primary w-100 rounded-3 shadow-sm" style={{ 
+                  borderColor: '#6366F1', 
+                  color: '#6366F1',
+                  transition: 'all 0.3s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.background = 'linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)';
+                  e.target.style.color = 'white';
+                  e.target.style.transform = 'translateY(-2px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = 'transparent';
+                  e.target.style.color = '#6366F1';
+                  e.target.style.transform = 'translateY(0)';
+                }}>
+                  <i className="fas fa-home me-2"></i>Browse PG Rooms
+                </a>
               </div>
-              
-              <div className="row mt-3">
-                <div className="col-md-6 mb-3">
-                  <a href="/user-dashboard/profile" className="btn btn-outline-secondary w-100">
-                    👤 Manage Profile
-                  </a>
-                </div>
-                <div className="col-md-6 mb-3">
-                  <a href="/user-dashboard/feedback" className="btn btn-outline-info w-100">
-                    ⭐ Give Feedback
-                  </a>
-                </div>
+              <div className="col-md-3 mb-3">
+                <a href="/user-dashboard/tiffins" className="btn btn-outline-warning w-100 rounded-3 shadow-sm" style={{ 
+                  borderColor: '#F59E0B', 
+                  color: '#F59E0B',
+                  transition: 'all 0.3s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.background = 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)';
+                  e.target.style.color = 'white';
+                  e.target.style.transform = 'translateY(-2px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = 'transparent';
+                  e.target.style.color = '#F59E0B';
+                  e.target.style.transform = 'translateY(0)';
+                }}>
+                  <i className="fas fa-utensils me-2"></i>Order Tiffin
+                </a>
+              </div>
+              <div className="col-md-3 mb-3">
+                <a href="/maid-hiring" className="btn btn-outline-success w-100 rounded-3 shadow-sm" style={{ 
+                  borderColor: '#10B981', 
+                  color: '#10B981',
+                  transition: 'all 0.3s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.background = 'linear-gradient(135deg, #10B981 0%, #059669 100%)';
+                  e.target.style.color = 'white';
+                  e.target.style.transform = 'translateY(-2px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = 'transparent';
+                  e.target.style.color = '#10B981';
+                  e.target.style.transform = 'translateY(0)';
+                }}>
+                  <i className="fas fa-broom me-2"></i>Hire Maid Service
+                </a>
+              </div>
+              <div className="col-md-3 mb-3">
+                <a href="/user-dashboard/bookings" className="btn btn-outline-info w-100 rounded-3 shadow-sm" style={{ 
+                  borderColor: '#06B6D4', 
+                  color: '#06B6D4',
+                  transition: 'all 0.3s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.background = 'linear-gradient(135deg, #06B6D4 0%, #0891B2 100%)';
+                  e.target.style.color = 'white';
+                  e.target.style.transform = 'translateY(-2px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = 'transparent';
+                  e.target.style.color = '#06B6D4';
+                  e.target.style.transform = 'translateY(0)';
+                }}>
+                  <i className="fas fa-clipboard-list me-2"></i>My Bookings
+                </a>
+              </div>
+            </div>
+            
+            <div className="row g-3 mt-2">
+              <div className="col-md-6 mb-3">
+                <a href="/user-dashboard/profile" className="btn btn-outline-secondary w-100 rounded-3 shadow-sm" style={{ 
+                  borderColor: '#6B7280', 
+                  color: '#6B7280',
+                  transition: 'all 0.3s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.background = 'linear-gradient(135deg, #6B7280 0%, #4B5563 100%)';
+                  e.target.style.color = 'white';
+                  e.target.style.transform = 'translateY(-2px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = 'transparent';
+                  e.target.style.color = '#6B7280';
+                  e.target.style.transform = 'translateY(0)';
+                }}>
+                  <i className="fas fa-user me-2"></i>Manage Profile
+                </a>
+              </div>
+              <div className="col-md-6 mb-3">
+                <a href="/user-dashboard/feedback" className="btn btn-outline-info w-100 rounded-3 shadow-sm" style={{ 
+                  borderColor: '#06B6D4', 
+                  color: '#06B6D4',
+                  transition: 'all 0.3s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.background = 'linear-gradient(135deg, #06B6D4 0%, #0891B2 100%)';
+                  e.target.style.color = 'white';
+                  e.target.style.transform = 'translateY(-2px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = 'transparent';
+                  e.target.style.color = '#06B6D4';
+                  e.target.style.transform = 'translateY(0)';
+                }}>
+                  <i className="fas fa-star me-2"></i>Give Feedback
+                </a>
               </div>
             </div>
           </div>

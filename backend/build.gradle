@@ -28,6 +28,7 @@ annotationProcessor 'org.projectlombok:lombok:1.18.32'
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-mail'
 
     // ✅ JWT - Upgraded to a version compatible with Java 17+
     // Explicitly define jjwt dependencies and exclude older transitive versions

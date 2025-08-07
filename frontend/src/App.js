@@ -55,10 +55,15 @@ function Navigation() {
   const userRole = getUserRole();
 
   return (
-    <nav className="navbar navbar-expand-lg navbar-dark bg-dark">
+    <nav className="navbar navbar-expand-lg" style={{ background: 'linear-gradient(90deg, #e0e7ff 0%, #f8fafc 100%)', boxShadow: '0 2px 12px rgba(44,62,80,0.07)', borderRadius: '0 0 1.5rem 1.5rem', marginBottom: 12 }}>
       <div className="container-fluid">
-        <Link className="navbar-brand" to="/">PGVaale</Link>
-        <div className="collapse navbar-collapse">
+        <Link className="navbar-brand fw-bold" to="/" style={{ color: '#4F46E5', fontSize: '2rem', letterSpacing: '1px' }}>
+          <i className="fas fa-home me-2" style={{ color: '#6366F1' }}></i>PGVaale
+        </Link>
+        <button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+          <span className="navbar-toggler-icon"></span>
+        </button>
+        <div className="collapse navbar-collapse" id="navbarNav">
           <ul className="navbar-nav ms-auto mb-2 mb-lg-0">
             {userRole !== 'owner' && (
   <li className="nav-item">

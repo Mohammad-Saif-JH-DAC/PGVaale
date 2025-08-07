@@ -3,6 +3,7 @@ package com.pgvaale.backend.controller;
 import com.pgvaale.backend.entity.Maid;
 import com.pgvaale.backend.repository.MaidRepository;
 import com.pgvaale.backend.security.JwtUtil;
+import com.pgvaale.backend.service.EmailService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -33,6 +34,9 @@ public class MaidAuthController {
     
     @Autowired
     private JwtUtil jwtUtil;
+
+    @Autowired
+    private EmailService emailService;
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody Map<String, Object> requestData, HttpServletRequest request) {
@@ -119,6 +123,14 @@ public class MaidAuthController {
             
             // Save maid
             Maid savedMaid = maidRepository.save(maid);
+            
+            // Send pending approval email
+            try {
+                emailService.sendPendingApprovalEmail(savedMaid.getEmail(), savedMaid.getName(), "Maid");
+            } catch (Exception emailException) {
+                // Log email error but don't fail registration
+                System.err.println("Failed to send pending approval email to " + savedMaid.getEmail() + ": " + emailException.getMessage());
+            }
             
             return ResponseEntity.ok("Maid registration successful for " + savedMaid.getUsername());
             

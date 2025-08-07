@@ -3,6 +3,7 @@ package com.pgvaale.backend.controller;
 import com.pgvaale.backend.entity.Owner;
 import com.pgvaale.backend.repository.OwnerRepository;
 import com.pgvaale.backend.security.JwtUtil;
+import com.pgvaale.backend.service.EmailService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -33,6 +34,9 @@ public class OwnerAuthController {
 
     @Autowired
     private JwtUtil jwtUtil;
+
+    @Autowired
+    private EmailService emailService;
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody Map<String, Object> requestData, HttpServletRequest request) {
@@ -117,6 +121,14 @@ public class OwnerAuthController {
 
             // Save owner
             Owner savedOwner = ownerRepository.save(owner);
+
+            // Send welcome email
+            try {
+                emailService.sendWelcomeEmail(savedOwner.getEmail(), savedOwner.getName(), "Owner");
+            } catch (Exception emailException) {
+                // Log email error but don't fail registration
+                System.err.println("Failed to send welcome email to " + savedOwner.getEmail() + ": " + emailException.getMessage());
+            }
 
             return ResponseEntity.ok("Owner registration successful for " + savedOwner.getUsername());
 

@@ -8,6 +8,7 @@ import com.pgvaale.backend.repository.AdminRepository;
 import com.pgvaale.backend.repository.MaidRepository;
 import com.pgvaale.backend.repository.TiffinRepository;
 import com.pgvaale.backend.service.DashboardService;
+import com.pgvaale.backend.service.EmailService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -36,6 +37,9 @@ public class AdminController {
 
     @Autowired
     private DashboardService dashboardService;
+
+    @Autowired
+    private EmailService emailService;
 
     @GetMapping("/test")
     public ResponseEntity<?> testAdmin() {
@@ -148,6 +152,14 @@ public class AdminController {
             maid.setApproved(true);
             Maid savedMaid = maidRepository.save(maid);
             
+            // Send approval confirmation email
+            try {
+                emailService.sendApprovalConfirmationEmail(savedMaid.getEmail(), savedMaid.getName(), "Maid");
+            } catch (Exception emailException) {
+                // Log email error but don't fail approval
+                System.err.println("Failed to send approval confirmation email to " + savedMaid.getEmail() + ": " + emailException.getMessage());
+            }
+            
             return ResponseEntity.ok("Maid " + savedMaid.getName() + " approved successfully");
         } catch (Exception e) {
             return ResponseEntity.status(500).body("Error approving maid: " + e.getMessage());
@@ -166,6 +178,14 @@ public class AdminController {
             Tiffin tiffin = tiffinOptional.get();
             tiffin.setApproved(true);
             Tiffin savedTiffin = tiffinRepository.save(tiffin);
+            
+            // Send approval confirmation email
+            try {
+                emailService.sendApprovalConfirmationEmail(savedTiffin.getEmail(), savedTiffin.getName(), "Tiffin");
+            } catch (Exception emailException) {
+                // Log email error but don't fail approval
+                System.err.println("Failed to send approval confirmation email to " + savedTiffin.getEmail() + ": " + emailException.getMessage());
+            }
             
             return ResponseEntity.ok("Tiffin " + savedTiffin.getName() + " approved successfully");
         } catch (Exception e) {

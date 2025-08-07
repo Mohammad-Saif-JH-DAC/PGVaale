@@ -95,6 +95,136 @@ function Home() {
         </div>
       </section>
 
+      {/* Regions Carousel Section */}
+      <section className="container py-5">
+        <div className="row text-center mb-4">
+          <div className="col">
+            <h2 className="fw-bold mb-3" style={{ color: '#2C3E50' }}>We are available in</h2>
+            <p className="text-muted mb-0">Expanding across major cities</p>
+          </div>
+        </div>
+        <div className="row justify-content-center">
+          <div className="col-md-8">
+            <div id="regionsCarousel" className="carousel slide" data-bs-ride="carousel">
+              <div className="carousel-inner rounded-4 shadow">
+                <div className="carousel-item active">
+                  <img src="https://images.unsplash.com/photo-1502082553048-f009c37129b9?auto=format&fit=crop&w=800&q=80" alt="Mumbai" className="d-block w-100 rounded-top-4" style={{height: 250, objectFit: 'cover'}} />
+                  <div className="d-flex flex-column align-items-center p-4 bg-white">
+                    <h3 className="fw-bold mb-2">Mumbai</h3>
+                    <p className="text-muted">The city of dreams, now with PGVaale!</p>
+                  </div>
+                </div>
+                <div className="carousel-item">
+                  <img src="https://images.unsplash.com/photo-1508672019048-805c876b67e2?auto=format&fit=crop&w=800&q=80" alt="Hyderabad" className="d-block w-100 rounded-top-4" style={{height: 250, objectFit: 'cover'}} />
+                  <div className="d-flex flex-column align-items-center p-4 bg-white">
+                    <h3 className="fw-bold mb-2">Hyderabad</h3>
+                    <p className="text-muted">Find your perfect stay in the City of Pearls.</p>
+                  </div>
+                </div>
+                <div className="carousel-item">
+                  <img src="https://images.unsplash.com/photo-1465101046530-73398c7f28ca?auto=format&fit=crop&w=800&q=80" alt="Pune" className="d-block w-100 rounded-top-4" style={{height: 250, objectFit: 'cover'}} />
+                  <div className="d-flex flex-column align-items-center p-4 bg-white">
+                    <h3 className="fw-bold mb-2">Pune</h3>
+                    <p className="text-muted">Student city, working hub, and now PGVaale ready!</p>
+                  </div>
+                </div>
+                <div className="carousel-item">
+                  <img src="https://images.unsplash.com/photo-1465447142348-e9952c393450?auto=format&fit=crop&w=800&q=80" alt="Delhi" className="d-block w-100 rounded-top-4" style={{height: 250, objectFit: 'cover'}} />
+                  <div className="d-flex flex-column align-items-center p-4 bg-white">
+                    <h3 className="fw-bold mb-2">Delhi</h3>
+                    <p className="text-muted">Capital comfort with PGVaale services.</p>
+                  </div>
+                </div>
+                <div className="carousel-item">
+                  <img src="https://images.unsplash.com/photo-1509228468518-c5eeecbff44a?auto=format&fit=crop&w=800&q=80" alt="Kolkata" className="d-block w-100 rounded-top-4" style={{height: 250, objectFit: 'cover'}} />
+                  <div className="d-flex flex-column align-items-center p-4 bg-white">
+                    <h3 className="fw-bold mb-2">Kolkata</h3>
+                    <p className="text-muted">City of Joy, now easier to live in!</p>
+                  </div>
+                </div>
+                <div className="carousel-item">
+                  <img src="https://images.unsplash.com/photo-1465101178521-c1a9136a3fd9?auto=format&fit=crop&w=800&q=80" alt="More regions soon" className="d-block w-100 rounded-top-4" style={{height: 250, objectFit: 'cover'}} />
+                  <div className="d-flex flex-column align-items-center p-4 bg-white">
+                    <h3 className="fw-bold mb-2">More regions coming soon!</h3>
+                    <p className="text-muted">Stay tuned as we expand to more cities across India.</p>
+                  </div>
+                </div>
+              </div>
+              <button className="carousel-control-prev" type="button" data-bs-target="#regionsCarousel" data-bs-slide="prev">
+                <span className="carousel-control-prev-icon" aria-hidden="true"></span>
+                <span className="visually-hidden">Previous</span>
+              </button>
+              <button className="carousel-control-next" type="button" data-bs-target="#regionsCarousel" data-bs-slide="next">
+                <span className="carousel-control-next-icon" aria-hidden="true"></span>
+                <span className="visually-hidden">Next</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Website Review Carousel Section */}
+      <section className="container py-5">
+        <div className="row justify-content-center">
+          <div className="col-md-8">
+            <div id="reviewCarousel" className="carousel slide" data-bs-ride="carousel">
+              <div className="carousel-inner rounded-4 shadow">
+                <div className="carousel-item active">
+                  <div className="card shadow border-0 rounded-4 p-4">
+                    <div className="d-flex align-items-center mb-3">
+                      <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="User" className="rounded-circle me-3" style={{ width: 60, height: 60, objectFit: 'cover' }} />
+                      <div>
+                        <h5 className="mb-0 fw-bold">Rahul Sharma</h5>
+                        <div style={{ color: '#FFD700', fontSize: '1.2rem' }}>★★★★★</div>
+                      </div>
+                    </div>
+                    <p className="mb-0 text-muted">
+                      "PGVaale made my move to Pune so much easier! The booking process was smooth, and the reviews helped me pick the best PG. Highly recommended!"
+                    </p>
+                  </div>
+                </div>
+                <div className="carousel-item">
+                  <div className="card shadow border-0 rounded-4 p-4">
+                    <div className="d-flex align-items-center mb-3">
+                      <img src="https://randomuser.me/api/portraits/women/44.jpg" alt="User" className="rounded-circle me-3" style={{ width: 60, height: 60, objectFit: 'cover' }} />
+                      <div>
+                        <h5 className="mb-0 fw-bold">Priya Verma</h5>
+                        <div style={{ color: '#FFD700', fontSize: '1.2rem' }}>★★★★☆</div>
+                      </div>
+                    </div>
+                    <p className="mb-0 text-muted">
+                      "Great platform for finding tiffin and maid services. The interface is user-friendly and support is quick!"
+                    </p>
+                  </div>
+                </div>
+                <div className="carousel-item">
+                  <div className="card shadow border-0 rounded-4 p-4">
+                    <div className="d-flex align-items-center mb-3">
+                      <img src="https://randomuser.me/api/portraits/men/65.jpg" alt="User" className="rounded-circle me-3" style={{ width: 60, height: 60, objectFit: 'cover' }} />
+                      <div>
+                        <h5 className="mb-0 fw-bold">Amit Singh</h5>
+                        <div style={{ color: '#FFD700', fontSize: '1.2rem' }}>★★★★★</div>
+                      </div>
+                    </div>
+                    <p className="mb-0 text-muted">
+                      "I found a PG in Hyderabad within a day. The reviews and photos were genuine. Will use again!"
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <button className="carousel-control-prev" type="button" data-bs-target="#reviewCarousel" data-bs-slide="prev">
+                <span className="carousel-control-prev-icon" aria-hidden="true"></span>
+                <span className="visually-hidden">Previous</span>
+              </button>
+              <button className="carousel-control-next" type="button" data-bs-target="#reviewCarousel" data-bs-slide="next">
+                <span className="carousel-control-next-icon" aria-hidden="true"></span>
+                <span className="visually-hidden">Next</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Call to Action Section */}
       <section className="container py-5">
         <div className="row align-items-center bg-primary rounded-4 shadow-lg p-5">
