@@ -4,7 +4,7 @@ import com.pgvaale.backend.dto.MenuDTO;
 import com.pgvaale.backend.dto.UserTiffinDTO;
 import com.pgvaale.backend.entity.Feedback;
 import com.pgvaale.backend.entity.Maid;
-import com.pgvaale.backend.entity.RoomInterest;
+
 import com.pgvaale.backend.entity.Tiffin;
 import com.pgvaale.backend.entity.User;
 import com.pgvaale.backend.entity.UserMaid;
@@ -12,7 +12,6 @@ import com.pgvaale.backend.entity.UserTiffin;
 import com.pgvaale.backend.entity.Feedback_Tiffin;
 import com.pgvaale.backend.repository.FeedbackRepository;
 import com.pgvaale.backend.repository.MaidRepository;
-import com.pgvaale.backend.repository.RoomInterestRepository;
 import com.pgvaale.backend.repository.UserMaidRepository;
 import com.pgvaale.backend.repository.UserRepository;
 import com.pgvaale.backend.repository.Feedback_TiffinRepository;
@@ -53,8 +52,7 @@ public class UserController {
     @Autowired
     private UserMaidRepository userMaidRepository;
 
-    @Autowired
-    private RoomInterestRepository roomInterestRepository;
+    
     
     @Autowired
     private UserMaidService userMaidService;
@@ -434,19 +432,19 @@ public class UserController {
     }
 
     // Get user's PG interests
-    @GetMapping("/pgs")
-    public ResponseEntity<?> getUserPGInterests() {
-        try {
-            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-            String username = auth.getName();
+    // @GetMapping("/pgs")
+    // public ResponseEntity<?> getUserPGInterests() {
+    //     try {
+    //         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+    //         String username = auth.getName();
 
-            // Get user's room interests from the database
-            List<RoomInterest> interests = roomInterestRepository.findByUsername(username);
-            return ResponseEntity.ok(interests);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Error fetching PG interests: " + e.getMessage());
-        }
-    }
+    //         // Get user's room interests from the database
+    //         List<RoomInterest> interests = roomInterestRepository.findByUsername(username);
+    //         return ResponseEntity.ok(interests);
+    //     } catch (Exception e) {
+    //         return ResponseEntity.badRequest().body("Error fetching PG interests: " + e.getMessage());
+    //     }
+    // }
 
     // Get user profile
     @GetMapping("/profile")
@@ -634,7 +632,7 @@ public class UserController {
 
             // Delete related data first (to maintain referential integrity)
             // Delete room interests
-            roomInterestRepository.deleteAll(roomInterestRepository.findByUsername(username));
+            // roomInterestRepository.deleteAll(roomInterestRepository.findByUsername(username));
 
             // Delete user-maid relationships
             userMaidRepository.deleteAll(userMaidRepository.findByUserId(userId));

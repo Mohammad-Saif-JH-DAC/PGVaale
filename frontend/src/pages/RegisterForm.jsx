@@ -856,7 +856,7 @@ function RegisterForm() {
 
                       <div className="mb-3">
                         <label className="form-label d-flex align-items-center">
-                          <FaHome className="me-2 text-primary" /> Maid's Address
+                          <FaHome className="me-2 text-primary" /> Tiffin's Address
                         </label>
                         <input
                           type="text"

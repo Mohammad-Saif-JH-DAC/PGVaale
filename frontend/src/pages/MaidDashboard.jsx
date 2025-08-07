@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Link, useNavigate } from 'react-router-dom';
+import { toast as Toast } from 'react-toastify';
 import api from '../api';
 import './MaidDashboard.css';
 

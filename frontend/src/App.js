@@ -18,6 +18,7 @@ import UserDashboard from './pages/UserDashboard';
 import TiffinDashboard from './pages/TiffinDashboard';
 import MaidDashboard from './pages/MaidDashboard';
 import MaidHiring from './pages/MaidHiring';
+import AboutUs from './pages/AboutUs';
 import Footer from './Footer';
 import PrivacyPolicy from './components/PrivacyPolicy';
 
@@ -82,6 +83,9 @@ function Navigation() {
             )}
             <li className="nav-item">
               <Link className="nav-link" to="/contact">ContactUs</Link>
+            </li>
+            <li className="nav-item">
+              <Link className="nav-link" to="/about">About Us</Link>
             </li>
             {token && userRole === 'admin' && (
               <li className="nav-item">
@@ -158,6 +162,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/contact" element={<ContactUs />} />
+            <Route path="/about" element={<AboutUs />} />
             <Route path="/register/*" element={<Register />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/admin" element={<Admin />} />
