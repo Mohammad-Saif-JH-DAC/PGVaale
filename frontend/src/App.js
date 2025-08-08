@@ -67,25 +67,30 @@ function Navigation() {
         <div className="collapse navbar-collapse" id="navbarNav">
           <ul className="navbar-nav ms-auto mb-2 mb-lg-0">
           <li className="nav-item">
-    <Link className="nav-link" to="/">Home</Link>
-  </li>
-            {userRole !== 'owner' || userRole !== 'tiffin' || userRole !== 'maid' && (
-  <li className="nav-item">
-    <Link className="nav-link" to="/pgrooms">PG Rooms</Link>
-  </li>
-)}
-            {userRole === 'user' && (
-  <li className="nav-item">
-    <Link className="nav-link" to="/maid-hiring">Hire Maid</Link>
-  </li>
-)}
+          <Link className="nav-link" to="/" style={{ color: 'black' }}
+  onMouseOver={e => e.target.style.color = 'black'}
+  onMouseOut={e => e.target.style.color = 'black'}
+>Home</Link>
+          </li>
+
+         <li className="nav-item">
+         <Link className="nav-link" to="/pgrooms">PG Rooms</Link>
+         </li>
+         
+
+          {userRole === 'user' && (
+          <li className="nav-item">
+          <Link className="nav-link" to="/maid-hiring">Hire Maid</Link>
+          </li>
+          )}
+          
             {!token && (
               <li className="nav-item">
                 <Link className="nav-link" to="/register">Register</Link>
               </li>
             )}
             <li className="nav-item">
-              <Link className="nav-link" to="/contact">ContactUs</Link>
+              <Link className="nav-link" to="/contact">Enquiry</Link>
             </li>
             <li className="nav-item">
               <Link className="nav-link" to="/about">About Us</Link>
