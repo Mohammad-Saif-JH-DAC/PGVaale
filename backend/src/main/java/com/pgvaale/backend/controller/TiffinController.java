@@ -16,9 +16,12 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import com.pgvaale.backend.entity.Feedback_Tiffin;
+import com.pgvaale.backend.entity.User;
 import com.pgvaale.backend.repository.Feedback_TiffinRepository;
 import com.pgvaale.backend.repository.MenuRepository;
+import com.pgvaale.backend.repository.UserRepository;
 import com.pgvaale.backend.repository.UserTiffinRepository;
 import com.pgvaale.backend.entity.Menu;
 
@@ -41,6 +44,65 @@ public class TiffinController {
 
     @Autowired
     private MenuRepository menuRepository;
+    
+    @Autowired
+    private UserRepository userRepository;
+    
+    // Get all approved tiffin providers (for users to browse)
+    @GetMapping("/all")
+    public ResponseEntity<?> getAllTiffins(
+            @RequestParam(required = false) String region,
+            @RequestParam(required = false) String category) {
+        try {
+            List<Tiffin> tiffins;
+            
+            // Use optimized queries based on filters
+            if (region != null && !region.isEmpty() && category != null && !category.isEmpty()) {
+                tiffins = tiffinRepository.findByApprovedTrueAndRegionIgnoreCaseAndFoodCategoryIgnoreCase(region, category);
+            } else if (region != null && !region.isEmpty()) {
+                tiffins = tiffinRepository.findByApprovedTrueAndRegionIgnoreCase(region);
+            } else if (category != null && !category.isEmpty()) {
+                tiffins = tiffinRepository.findByApprovedTrueAndFoodCategoryIgnoreCase(category);
+            } else {
+                tiffins = tiffinRepository.findByApprovedTrue();
+            }
+            
+            // Set default values for missing fields to ensure frontend compatibility
+            tiffins.forEach(tiffin -> {
+                if (tiffin.getName() == null) tiffin.setName("Tiffin Provider " + tiffin.getId());
+                if (tiffin.getCuisine() == null) tiffin.setCuisine("North Indian"); // Default cuisine
+                if (tiffin.getMealType() == null) tiffin.setMealType("Full Day");
+                if (tiffin.getPricePerMeal() == null) tiffin.setPricePerMeal(tiffin.getPrice());
+                if (tiffin.getRating() == null) tiffin.setRating(4.5);
+                if (tiffin.getDescription() == null) tiffin.setDescription("Delicious home-cooked meals delivered to your doorstep.");
+                if (tiffin.getIsVegetarian() == null) tiffin.setIsVegetarian("Veg".equalsIgnoreCase(tiffin.getFoodCategory()));
+                if (tiffin.getProfileImage() == null) tiffin.setProfileImage("https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=150&q=80");
+            });
+            
+            return ResponseEntity.ok(tiffins);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error fetching tiffin providers: " + e.getMessage());
+        }
+    }
+    
+    // Book tiffin service
+    @PostMapping("/book/{tiffinId}")
+    public ResponseEntity<?> bookTiffin(@PathVariable Long tiffinId) {
+        try {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            String username = auth.getName();
+            
+            // Get user ID from username
+            User user = userRepository.findByUsername(username)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+            
+            // Create booking request
+            UserTiffinDTO booking = tiffinService.createUserRequest(user.getId(), tiffinId);
+            return ResponseEntity.ok(booking);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error booking tiffin: " + e.getMessage());
+        }
+    }
     
     // Dashboard
     @GetMapping("/dashboard")

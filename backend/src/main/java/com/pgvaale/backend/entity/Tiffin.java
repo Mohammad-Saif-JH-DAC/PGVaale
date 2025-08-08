@@ -34,6 +34,16 @@ public class Tiffin extends BaseEntity {
 
     private String maidAddress;
     
+    // Additional fields for frontend compatibility
+    private String name;
+    private String cuisine;
+    private String mealType;
+    private Double pricePerMeal;
+    private Double rating;
+    private String description;
+    private Boolean isVegetarian;
+    private String profileImage;
+    
     @Builder.Default
     private boolean approved = false; // Admin approval status
 } 

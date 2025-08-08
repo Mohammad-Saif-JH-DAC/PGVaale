@@ -11,4 +11,9 @@ public interface TiffinRepository extends JpaRepository<Tiffin, Long> {
     Optional<Tiffin> findByEmail(String email);
     List<Tiffin> findByApprovedFalse();
     List<Tiffin> findByApprovedTrue();
+    
+    // Additional query methods for filtering
+    List<Tiffin> findByApprovedTrueAndRegionIgnoreCase(String region);
+    List<Tiffin> findByApprovedTrueAndFoodCategoryIgnoreCase(String foodCategory);
+    List<Tiffin> findByApprovedTrueAndRegionIgnoreCaseAndFoodCategoryIgnoreCase(String region, String foodCategory);
 } 
