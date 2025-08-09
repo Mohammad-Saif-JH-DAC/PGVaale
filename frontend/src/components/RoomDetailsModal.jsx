@@ -271,16 +271,16 @@ function RoomDetailsModal({ show, onClose, room }) {
                     <a href="/login" className="alert-link text-primary fw-bold">
                       log in
                     </a>{' '}
-                    to send interest to the owner.
+                    to Book your PG.
                   </div>
                 </div>
               )}
             </div>
           </div>
           <div className="modal-footer border-0" style={{ borderBottomLeftRadius: '1.5rem', borderBottomRightRadius: '1.5rem', background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(8px)' }}>
-            <button type="button" className="btn btn-outline-primary rounded-3 px-4" onClick={handleClose}>
+            {/* <button type="button" className="btn btn-outline-primary rounded-3 px-4" onClick={handleClose}>
               <i className="fas fa-times me-2"></i>Close
-            </button>
+            </button> */}
           </div>
         </div>
       </div>

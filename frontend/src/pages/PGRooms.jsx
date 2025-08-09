@@ -137,8 +137,9 @@ function PGRooms() {
       downloadPdf(roomId);
     } catch (error) {
       console.error('Booking failed:', error);
-      const errorMessage = error.response?.data || 'Booking failed';
-      alert(errorMessage);
+      const errorMessage = error.response?.data || 'Booking failed! Please Login to continue.';
+      // alert(errorMessage);
+      Toast.error(errorMessage);
       setBookingStatus((prev) => ({ ...prev, [roomId]: 'failed' }));
     }
 
@@ -518,9 +519,10 @@ function PGRooms() {
                     ) : (
                       <button
                           className="btn btn-outline-secondary flex-grow-1 rounded-3"
-                        onClick={() => alert('Please log in to book PG.')}
+                        // onClick={() => alert('Please log in to book PG.')}
+                        onClick={() =>Toast.warn('Please login to send interest.')}
                       >
-                          <i className="fas fa-heart me-2"></i>book PG
+                          <i className="fas fa-heart me-2"></i>Book PG
                       </button>
                     )}
                   </div>

@@ -111,7 +111,8 @@ function Navigation() {
     <nav className="navbar navbar-expand-lg" style={{ background: 'linear-gradient(90deg, #e0e7ff 0%, #f8fafc 100%)', boxShadow: '0 2px 12px rgba(44,62,80,0.07)', borderRadius: '0 0 1.5rem 1.5rem', marginBottom: 12 }}>
       <div className="container-fluid" style={{ paddingLeft: '1rem', paddingRight: '1rem' }}>
         <Link className="navbar-brand fw-bold" to="/" style={{ color: '#4F46E5', fontSize: '2rem', letterSpacing: '1px' }}>
-          <i className="fas fa-home me-2" style={{ color: '#6366F1' }}></i>PGVaale
+          <i className="fas fa-home me-2" style={{ color: '#6366F1' }}></i>PGVaale  
+          <p style={{ fontSize: '1rem', color: '#6B7280' }}> - Your Trusted Room Finder</p>
         </Link>
         <button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
           <span className="navbar-toggler-icon"></span>
@@ -152,7 +153,7 @@ function Navigation() {
                  onMouseEnter={(e) => handleMouseEnter(e, navLinkHoverStyle)}
                  onMouseLeave={(e) => handleMouseLeave(e, navLinkStyle)}
                >
-                 Contact Us
+                 Enquiry
                </Link>
              </li>
              
