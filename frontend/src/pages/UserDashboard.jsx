@@ -424,33 +424,79 @@ const PGInterests = () => {
 
 // Tiffin Services Component
 const TiffinServices = () => {
-  const [tiffins, setTiffins] = useState([]);
+  const [tiffinProviders, setTiffinProviders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [filters, setFilters] = useState({
+    region: '',
+    category: ''
+  });
+  const [bookingStatus, setBookingStatus] = useState({});
   const [selectedTiffin, setSelectedTiffin] = useState(null);
   const [showTiffinModal, setShowTiffinModal] = useState(false);
-  const [message, setMessage] = useState('');
 
-  useEffect(() => {
-    fetchTiffins();
-  }, []);
-
-  const fetchTiffins = async () => {
+  // Fetch tiffin providers
+  const fetchTiffinProviders = async (filterParams = filters) => {
     try {
-      const response = await api.get('/api/user/tiffins');
-      setTiffins(response.data);
+      setLoading(true);
+      let url = '/api/tiffin/all';
+      const queryParams = [];
+
+      if (filterParams.region) queryParams.push(`region=${encodeURIComponent(filterParams.region)}`);
+      if (filterParams.category) queryParams.push(`category=${encodeURIComponent(filterParams.category)}`);
+
+      if (queryParams.length > 0) {
+        url += '?' + queryParams.join('&');
+      }
+
+      const res = await api.get(url);
+      setTiffinProviders(Array.isArray(res.data) ? res.data : []);
     } catch (error) {
-      console.error('Error fetching tiffin services:', error);
-      Toast.error('Error loading tiffin services: ' + (error.response?.data || error.message));
+      console.error('Error fetching tiffin providers:', error);
+      setTiffinProviders([]);
+      Toast.error('Failed to load tiffin providers. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
+  // Load tiffin providers on mount
+  useEffect(() => {
+    fetchTiffinProviders();
+  }, []);
+
+  // Handle filter changes
+  const handleFilterChange = (e) => {
+    const { name, value } = e.target;
+    const updatedFilters = { ...filters, [name]: value };
+    setFilters(updatedFilters);
+    fetchTiffinProviders(updatedFilters);
+  };
+
+  // Handle booking
+  const handleBookTiffin = async (providerId) => {
+    const token = sessionStorage.getItem('token');
+    if (!token) {
+      Toast.error('Please log in to book tiffin services.');
+      return;
+    }
+
+    try {
+      await api.post(`/api/tiffin/book/${providerId}`);
+      setBookingStatus(prev => ({ ...prev, [providerId]: 'booked' }));
+      Toast.success('Tiffin service booked successfully!');
+    } catch (error) {
+      console.error('Error booking tiffin:', error);
+      Toast.error('Failed to book tiffin service. Please try again.');
+    }
+  };
+
+  // Handle request click (for modal)
   const handleRequestClick = (tiffin) => {
     setSelectedTiffin(tiffin);
     setShowTiffinModal(true);
   };
 
+  // Handle request submit (for modal)
   const handleRequestSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -459,59 +505,236 @@ const TiffinServices = () => {
       setShowTiffinModal(false);
       setSelectedTiffin(null);
       Toast.success('Request sent successfully!');
-      setTimeout(() => setMessage(''), 3000);
     } catch (error) {
       Toast.error('Error sending request: ' + error.response?.data);
     }
   };
 
+  // Default error message when no providers are available
+  const NoProvidersMessage = () => (
+    <div className="text-center py-5">
+      <div className="card shadow border-0 rounded-4 p-5">
+        <div className="mb-4">
+          <i className="fas fa-utensils text-muted" style={{ fontSize: '4rem' }}></i>
+        </div>
+        <h3 className="text-muted mb-3">No Tiffin Providers Available</h3>
+        <p className="text-muted mb-4">
+          {filters.region || filters.category 
+            ? 'No tiffin providers match your current filters. Try adjusting your search criteria.'
+            : 'Currently no tiffin providers are available in your area. Please check back later or contact us for assistance.'
+          }
+        </p>
+        {(filters.region || filters.category) && (
+          <button 
+            className="btn btn-primary"
+            onClick={() => {
+              setFilters({ region: '', category: '' });
+              fetchTiffinProviders({ region: '', category: '' });
+            }}
+          >
+            Clear Filters
+          </button>
+        )}
+      </div>
+    </div>
+  );
+
   if (loading) {
     return (
-      <div className="container mt-5">
-        <div className="text-center">
-          <div className="spinner-border" role="status">
-            <span className="visually-hidden">Loading...</span>
-          </div>
+      <div className="text-center py-5">
+        <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">Loading...</span>
         </div>
+        <p className="mt-3 text-muted">Loading tiffin providers...</p>
       </div>
     );
   }
 
   return (
-    <div className="container mt-4">
-      <div className="row">
-        <div className="col-12">
-          <h2 className="mb-4">🍱 Tiffin Services</h2>
-          {message && (
-            <div className={`alert alert-${message.includes('Error') ? 'danger' : 'success'}`}>
-              {message}
+    <>
+      <div style={{
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, #f8fafc 0%, #e0e7ff 100%)',
+        paddingTop: '2rem',
+        paddingBottom: '2rem'
+      }}>
+        <div className="container">
+          {/* Header Section */}
+          <div className="row mb-5">
+            <div className="col-12 text-center">
+              <h1 className="display-6 fw-bold mb-3" style={{ color: '#2C3E50' }}>
+                <i className="fas fa-utensils me-3" style={{ color: '#4F46E5' }}></i>
+                Hire Tiffin Services
+              </h1>
+              <p className="lead text-muted">
+                Find and book reliable tiffin services for delicious home-cooked meals
+              </p>
             </div>
-          )}
-        </div>
-      </div>
+          </div>
 
-      <div className="row">
-        {tiffins.map((tiffin) => (
-          <div key={tiffin.id} className="col-md-6 col-lg-4 mb-4">
-            <div className="card h-100">
-              <div className="card-body">
-                <h5 className="card-title">{tiffin.name}</h5>
-                <p className="card-text">
-                  <strong>Food Category:</strong> {tiffin.foodCategory || 'N/A'}<br/>
-                  <strong>Region:</strong> {tiffin.region || 'N/A'}<br/>
-                  <strong>Price per Meal:</strong> ₹{tiffin.price || 'N/A'}<br/>
-                  <strong>Address:</strong> {tiffin.maidAddress || 'N/A'}
-                </p>
-                <button 
-                  className="btn btn-warning w-100"
-                  onClick={() => handleRequestClick(tiffin)}
-                >
-                  Send Request
-                </button>
+          {/* Filters Section */}
+          <div className="row mb-4">
+            <div className="col-12">
+              <div className="card shadow border-0 rounded-4 p-4">
+                <h5 className="mb-3 fw-bold">Filter Tiffin Providers</h5>
+                <div className="row g-3">
+                  <div className="col-md-4">
+                    <label className="form-label fw-bold">Region</label>
+                    <select
+                      className="form-select"
+                      name="region"
+                      value={filters.region}
+                      onChange={handleFilterChange}
+                    >
+                      <option value="">All Regions</option>
+                      <option value="Mumbai">Mumbai</option>
+                      <option value="Delhi">Delhi</option>
+                      <option value="Pune">Pune</option>
+                      <option value="Hyderabad">Hyderabad</option>
+                      <option value="Kolkata">Kolkata</option>
+                    </select>
+                  </div>
+                  <div className="col-md-4">
+                    <label className="form-label fw-bold">Food Category</label>
+                    <select
+                      className="form-select"
+                      name="category"
+                      value={filters.category}
+                      onChange={handleFilterChange}
+                    >
+                      <option value="">All Categories</option>
+                      <option value="Veg">Vegetarian</option>
+                      <option value="Non-Veg">Non-Vegetarian</option>
+                    </select>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-        ))}
+
+          {/* No Providers Message */}
+          {!loading && tiffinProviders.length === 0 && <NoProvidersMessage />}
+
+          {/* Tiffin Providers Grid */}
+          {!loading && tiffinProviders.length > 0 && (
+            <div className="row g-4">
+              {tiffinProviders.map((provider) => (
+                <div key={provider.id} className="col-md-6 col-lg-4">
+                  <div className="card h-100 shadow border-0 rounded-4">
+                    <div className="card-body">
+                      <div className="d-flex align-items-center mb-3">
+                        <div className="flex-shrink-0">
+                          <img
+                            src={provider.profileImage || "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=150&q=80"}
+                            alt={provider.name}
+                            className="rounded-circle"
+                            style={{ width: 60, height: 60, objectFit: 'cover' }}
+                          />
+                        </div>
+                        <div className="flex-grow-1 ms-3">
+                          <h5 className="card-title mb-1 fw-bold">{provider.name}</h5>
+                          <p className="text-muted mb-0 small">
+                            <i className="fas fa-map-marker-alt me-1"></i>
+                            {provider.region}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="mb-3">
+                        <span className="badge bg-primary me-2">{provider.cuisine}</span>
+                        <span className="badge bg-success me-2">{provider.mealType}</span>
+                        {provider.isVegetarian && (
+                          <span className="badge bg-success">Vegetarian</span>
+                        )}
+                      </div>
+
+                      <p className="card-text text-muted small mb-3">
+                        {provider.description || 'Delicious home-cooked meals delivered to your doorstep.'}
+                      </p>
+
+                      <div className="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                          <span className="fw-bold text-primary">₹{provider.pricePerMeal || 50}</span>
+                          <span className="text-muted small">/meal</span>
+                        </div>
+                        <div className="text-warning">
+                          {provider.rating && provider.rating > 0 ? (
+                            <>
+                              <i className="fas fa-star"></i>
+                              <span className="ms-1">{provider.rating.toFixed(1)}</span>
+                              <span className="text-muted small ms-1">({Math.round(provider.rating)}/5)</span>
+                            </>
+                          ) : (
+                            <>
+                              <i className="fas fa-star text-muted"></i>
+                              <span className="ms-1 text-muted">No ratings yet</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      <button
+                        className={`btn w-100 ${
+                          bookingStatus[provider.id] === 'booked' 
+                            ? 'btn-success' 
+                            : 'btn-primary'
+                        }`}
+                        onClick={() => handleBookTiffin(provider.id)}
+                        disabled={bookingStatus[provider.id] === 'booked'}
+                      >
+                        {bookingStatus[provider.id] === 'booked' 
+                          ? 'Booked ✓' 
+                          : 'Book Tiffin Service'
+                        }
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Additional Information */}
+          {!loading && tiffinProviders.length > 0 && (
+            <div className="row mt-5">
+              <div className="col-12">
+                <div className="card shadow border-0 rounded-4 p-4">
+                  <h5 className="fw-bold mb-3">Why Choose Our Tiffin Services?</h5>
+                  <div className="row g-3">
+                    <div className="col-md-3">
+                      <div className="text-center">
+                        <i className="fas fa-shield-alt text-primary mb-2" style={{ fontSize: '2rem' }}></i>
+                        <h6 className="fw-bold">Hygienic</h6>
+                        <p className="text-muted small">All providers follow strict hygiene standards</p>
+                      </div>
+                    </div>
+                    <div className="col-md-3">
+                      <div className="text-center">
+                        <i className="fas fa-clock text-primary mb-2" style={{ fontSize: '2rem' }}></i>
+                        <h6 className="fw-bold">Timely Delivery</h6>
+                        <p className="text-muted small">Fresh meals delivered on schedule</p>
+                      </div>
+                    </div>
+                    <div className="col-md-3">
+                      <div className="text-center">
+                        <i className="fas fa-heart text-primary mb-2" style={{ fontSize: '2rem' }}></i>
+                        <h6 className="fw-bold">Home-Cooked</h6>
+                        <p className="text-muted small">Authentic home-style cooking</p>
+                      </div>
+                    </div>
+                    <div className="col-md-3">
+                      <div className="text-center">
+                        <i className="fas fa-wallet text-primary mb-2" style={{ fontSize: '2rem' }}></i>
+                        <h6 className="fw-bold">Affordable</h6>
+                        <p className="text-muted small">Budget-friendly meal options</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Tiffin Request Modal */}
@@ -559,1015 +782,125 @@ const TiffinServices = () => {
       {showTiffinModal && (
         <div className="modal-backdrop fade show"></div>
       )}
-    </div>
+    </>
   );
 };
 
-// Tiffin Requests Component
+// Missing Components - Placeholder implementations
 const TiffinRequests = () => {
-  const [requests, setRequests] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [filterStatus, setFilterStatus] = useState('all');
-
-  useEffect(() => {
-    fetchRequests();
-  }, [filterStatus]);
-
-  const fetchRequests = async () => {
-    try {
-      let response;
-      if (filterStatus === 'all') {
-        response = await api.get('/api/user/requests');
-      } else {
-        response = await api.get(`/api/user/requests?status=${filterStatus}`);
-      }
-      setRequests(response.data);
-    } catch (error) {
-      //console.error('Error fetching requests:', error);
-      Toast.error('Error loading tiffin requests: ' + (error.response?.data || error.message));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCancelRequest = async (requestId) => {
-    if (window.confirm('Are you sure you want to cancel this request?')) {
-      try {
-        await api.delete(`/api/user/requests/${requestId}`);
-        fetchRequests(); // Refresh the list
-       Toast.info('Request cancelled successfully');
-      } catch (error) {
-        Toast.error('Error cancelling request: ' + error.response?.data);
-      }
-    }
-  };
-
-  const getStatusBadgeClass = (status) => {
-    switch (status) {
-      case 'PENDING': return 'bg-warning';
-      case 'ACCEPTED': return 'bg-success';
-      case 'REJECTED': return 'bg-danger';
-      default: return 'bg-secondary';
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="container mt-5">
-        <div className="text-center">
-          <div className="spinner-border" role="status">
-            <span className="visually-hidden">Loading...</span>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="container mt-4">
-      <div className="row">
-        <div className="col-12">
-          <h2 className="mb-4">📋 My Tiffin Requests</h2>
-          <div className="mb-3">
-            <div className="btn-group" role="group">
-              <button
-                type="button"
-                className={`btn btn-outline-primary ${filterStatus === 'all' ? 'active' : ''}`}
-                onClick={() => setFilterStatus('all')}
-              >
-                All
-              </button>
-              <button
-                type="button"
-                className={`btn btn-outline-warning ${filterStatus === 'PENDING' ? 'active' : ''}`}
-                onClick={() => setFilterStatus('PENDING')}
-              >
-                Pending
-              </button>
-              <button
-                type="button"
-                className={`btn btn-outline-success ${filterStatus === 'ACCEPTED' ? 'active' : ''}`}
-                onClick={() => setFilterStatus('ACCEPTED')}
-              >
-                Accepted
-              </button>
-              <button
-                type="button"
-                className={`btn btn-outline-danger ${filterStatus === 'REJECTED' ? 'active' : ''}`}
-                onClick={() => setFilterStatus('REJECTED')}
-              >
-                Rejected
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="row">
-        <div className="col-12">
-          {requests.length > 0 ? (
-            <div className="card">
-              <div className="card-body">
-                <div className="table-responsive">
-                  <table className="table table-hover">
-                    <thead>
-                      <tr>
-                        <th>Tiffin Provider</th>
-                        <th>Request Date</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {requests.map((request) => (
-                        <tr key={request.id}>
-                          <td>{request.tiffinName || 'Unknown Provider'}</td>
-                          <td>{new Date(request.assignedDateTime).toLocaleDateString()}</td>
-                          <td>
-                            <span className={`badge ${getStatusBadgeClass(request.status)}`}>
-                              {request.status}
-                            </span>
-                          </td>
-                          <td>
-                            {request.status === 'PENDING' && (
-                              <button 
-                                className="btn btn-outline-danger btn-sm"
-                                onClick={() => handleCancelRequest(request.id)}
-                              >
-                                Cancel
-                              </button>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="card">
-              <div className="card-body text-center">
-                <div className="mb-3">
-                  <span style={{fontSize: '3rem'}}>🍱</span>
-                </div>
-                <h5 className="text-muted">No Tiffin Requests Yet</h5>
-                <p className="text-muted">Send requests to tiffin providers to see them here.</p>
-                <a href="/user-dashboard/tiffins" className="btn btn-warning">
-                  Browse Tiffin Services
-                </a>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-
-
-// Maid Services Component
-const MaidServices = () => {
-  const [maids, setMaids] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [showHireModal, setShowHireModal] = useState(false);
-  const [selectedMaid, setSelectedMaid] = useState(null);
-  const [hireForm, setHireForm] = useState({
-    startDate: '',
-    endDate: '',
-    userAddress: ''
-  });
-  const [message, setMessage] = useState('');
-
-  useEffect(() => {
-    fetchMaids();
-  }, []);
-
-  const fetchMaids = async () => {
-    try {
-      const response = await api.get('/api/maid/available');
-      setMaids(response.data);
-    } catch (error) {
-      //console.error('Error fetching maids:', error);
-      Toast.error('Error loading maid services: ' + (error.response?.data || error.message));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleHireClick = (maid) => {
-    setSelectedMaid(maid);
-    setShowHireModal(true);
-  };
-
-  const handleHireSubmit = async (e) => {
-    e.preventDefault();
-    try {
-             // Get user ID from token
-       const token = sessionStorage.getItem('token');
-       if (!token) {
-         setMessage('Please log in to hire a maid');
-         return;
-       }
-
-       const payload = JSON.parse(atob(token.split('.')[1]));
-       const userId = payload.userId;
-
-       if (!userId) {
-         setMessage('Unable to get user information. Please try logging in again.');
-         return;
-       }
-
-      const response = await api.post('/api/user-maid/request', {
-        userId: userId,
-        maidId: selectedMaid.id,
-        startDate: hireForm.startDate,
-        endDate: hireForm.endDate,
-        userAddress: hireForm.userAddress,
-        timeSlot: selectedMaid.timing || 'Not specified' // Use maid's actual timing
-      });
-      
-      setMessage('Maid hiring request sent successfully!');
-      setShowHireModal(false);
-      setHireForm({ startDate: '', endDate: '', userAddress: '' });
-      setSelectedMaid(null);
-      
-      // Show success message
-      setTimeout(() => setMessage(''), 3000);
-      Toast.success('Maid hired successfully!');
-    } catch (error) {
-      Toast.error('Error hiring maid');
-      setMessage('Error hiring maid: ' + (error.response?.data || error.message));}
-  };
-
-  if (loading) {
-    return (
-      <div className="container mt-5">
-        <div className="text-center">
-          <div className="spinner-border" role="status">
-            <span className="visually-hidden">Loading...</span>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="container mt-4">
-      <div className="row">
-        <div className="col-12">
-          <h2 className="mb-4">🧹 Maid Services</h2>
-          {message && (
-            <div className={`alert alert-${message.includes('Error') ? 'danger' : 'success'}`}>
-              {message}
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="row">
-        {maids.map((maid) => (
-          <div key={maid.id} className="col-md-6 col-lg-4 mb-4">
-            <div className="card h-100">
-              <div className="card-body">
-                <div className="d-flex justify-content-between align-items-start mb-3">
-                  <h5 className="card-title mb-0">{maid.name}</h5>
-                  <span className="badge bg-success">Available</span>
-                </div>
-                
-                <div className="mb-3">
-                  <p className="card-text">
-                    <strong>Services:</strong>
-                  </p>
-                  <div className="mb-2">
-                    {maid.services?.split(',').map((service, index) => (
-                      <span key={index} className="badge bg-light text-dark me-1 mb-1">
-                        {service.trim()}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="row mb-3">
-                  <div className="col-6">
-                    <small className="text-muted">Region</small>
-                    <p className="mb-0"><strong>{maid.region}</strong></p>
-                  </div>
-                  <div className="col-6">
-                    <small className="text-muted">Salary</small>
-                    <p className="mb-0"><strong>₹{maid.monthlySalary}/month</strong></p>
-                  </div>
-                </div>
-
-                <div className="row mb-3">
-                  <div className="col-6">
-                    <small className="text-muted">Timing</small>
-                    <p className="mb-0"><strong>{maid.timing}</strong></p>
-                  </div>
-                  <div className="col-6">
-                    <small className="text-muted">Gender</small>
-                    <p className="mb-0"><strong>{maid.gender}</strong></p>
-                  </div>
-                </div>
-
-                <button 
-                  className="btn btn-success w-100"
-                  onClick={() => handleHireClick(maid)}
-                >
-                  🧹 Hire Now
-                </button>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Hire Modal */}
-      {showHireModal && selectedMaid && (
-        <div className="modal fade show" style={{display: 'block'}}>
-          <div className="modal-dialog">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">Hire {selectedMaid.name}</h5>
-                <button 
-                  type="button" 
-                  className="btn-close" 
-                  onClick={() => setShowHireModal(false)}
-                ></button>
-              </div>
-              <form onSubmit={handleHireSubmit}>
-                <div className="modal-body">
-                  <div className="mb-3">
-                    <label className="form-label">Start Date</label>
-                    <input
-                      type="date"
-                      className="form-control"
-                      value={hireForm.startDate}
-                      onChange={(e) => setHireForm({...hireForm, startDate: e.target.value})}
-                      required
-                      min={new Date().toISOString().split('T')[0]}
-                    />
-                  </div>
-                  <div className="mb-3">
-                    <label className="form-label">End Date</label>
-                    <input
-                      type="date"
-                      className="form-control"
-                      value={hireForm.endDate}
-                      onChange={(e) => setHireForm({...hireForm, endDate: e.target.value})}
-                      required
-                      min={hireForm.startDate || new Date().toISOString().split('T')[0]}
-                    />
-                  </div>
-                  <div className="mb-3">
-                    <label className="form-label">Maid's Available Timing</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      value={selectedMaid.timing || 'Not specified'}
-                      disabled
-                    />
-                    <small className="text-muted">The maid will work according to their available timing</small>
-                  </div>
-                  <div className="mb-3">
-                    <label className="form-label">Your Address</label>
-                    <textarea
-                      className="form-control"
-                      value={hireForm.userAddress}
-                      onChange={(e) => setHireForm({...hireForm, userAddress: e.target.value})}
-                      placeholder="Enter your complete address where the maid should come"
-                      rows="3"
-                      required
-                    />
-                  </div>
-                </div>
-                <div className="modal-footer">
-                  <button type="button" className="btn btn-secondary" onClick={() => setShowHireModal(false)}>
-                    Cancel
-                  </button>
-                  <button type="submit" className="btn btn-success">
-                    Send Request
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal Backdrop */}
-      {showHireModal && (
-        <div className="modal-backdrop fade show"></div>
-      )}
-    </div>
-  );
-};
-
-// My Bookings Component
-const MyBookings = () => {
-  const [bookings, setBookings] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('pg');
-
-  useEffect(() => {
-    fetchBookings();
-  }, []);
-
-  const fetchBookings = async () => {
-    try {
-              const response = await api.get('/api/user/bookings');
-      setBookings(response.data);
-    } catch (error) {
-      //console.error('Error fetching bookings:', error);
-      Toast.error('Error loading bookings: ' + (error.response?.data || error.message));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCancelRequest = async (requestId, requestType) => {
-    if (window.confirm('Are you sure you want to cancel this request?')) {
-      try {
-        if (requestType === 'maid') {
-          await api.delete(`/api/user/maid-requests/${requestId}`);
-        } else if (requestType === 'tiffin') {
-          await api.delete(`/api/user/requests/${requestId}`);
-        }
-        fetchBookings(); // Refresh the list
-        Toast.success('Request cancelled successfully');
-      } catch (error) {
-        Toast.error('Error cancelling request: ' + error.response?.data);
-      }
-    }
-  };
-
-  const handleChangeMaid = async (request) => {
-    if (window.confirm('Are you sure you want to change the maid for this booking?')) {
-      try {
-        await api.post(`/api/user/maid-requests/${request.id}/change`);
-        alert('Maid changed successfully!');
-        fetchBookings(); // Refresh the list
-      } catch (error) {
-        alert('Error changing maid: ' + error.response?.data);
-      }
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="container mt-5">
-        <div className="text-center">
-          <div className="spinner-border" role="status">
-            <span className="visually-hidden">Loading...</span>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="container mt-4">
-      <div className="row">
-        <div className="col-12">
-          <h2 className="mb-4">📋 My Bookings</h2>
-        </div>
-      </div>
-
-      <div className="row">
-        <div className="col-12">
-          <ul className="nav nav-tabs" id="bookingsTab" role="tablist">
-            <li className="nav-item" role="presentation">
-              <button 
-                className={`nav-link ${activeTab === 'pg' ? 'active' : ''}`}
-                onClick={() => setActiveTab('pg')}
-              >
-                🏠 My PG 
-              </button>
-            </li>
-            <li className="nav-item" role="presentation">
-              <button 
-                className={`nav-link ${activeTab === 'tiffin' ? 'active' : ''}`}
-                onClick={() => setActiveTab('tiffin')}
-              >
-                🍱 Tiffin Bookings
-              </button>
-            </li>
-            <li className="nav-item" role="presentation">
-              <button 
-                className={`nav-link ${activeTab === 'maid' ? 'active' : ''}`}
-                onClick={() => setActiveTab('maid')}
-              >
-                🧹 Maid Requests
-              </button>
-            </li>
-          </ul>
-
-          <div className="tab-content mt-3" id="bookingsTabContent">
-            {/* PG Interests Tab */}
-            <div className={`tab-pane fade ${activeTab === 'pg' ? 'show active' : ''}`}>
-              {bookings?.pgInterests && bookings.pgInterests.length > 0 ? (
-                <div className="card">
-                  <div className="card-body">
-                    <div className="table-responsive">
-                      <table className="table table-hover">
-                        <thead>
-                          <tr>
-                            <th>PG Name</th>
-                            <th>Room Type</th>
-                            <th>Location</th>
-                            <th>Price</th>
-                            <th>Status</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {bookings.pgInterests.map((interest) => (
-                            <tr key={interest.id}>
-                              <td>{interest.room?.pg?.name || 'Unknown PG'}</td>
-                              <td>{interest.room?.roomType || 'N/A'}</td>
-                              <td>{interest.room?.pg?.location || 'N/A'}</td>
-                              <td>₹{interest.room?.price || 'N/A'}</td>
-                              <td>
-                                <span className="badge bg-info">Interested</span>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="card">
-                  <div className="card-body text-center">
-                    <h5 className="text-muted">Try Finding your suitable PG 🏠</h5>
-                    <p className="text-muted">You haven't expressed interest in any PG rooms yet.</p>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Tiffin Bookings Tab */}
-            <div className={`tab-pane fade ${activeTab === 'tiffin' ? 'show active' : ''}`}>
-              {bookings?.tiffinRequests && bookings.tiffinRequests.length > 0 ? (
-                <div className="card">
-                  <div className="card-body">
-                    <div className="table-responsive">
-                      <table className="table table-hover">
-                        <thead>
-                          <tr>
-                            <th>Tiffin Provider</th>
-                            <th>Request Date</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {bookings.tiffinRequests.map((request) => (
-                            <tr key={request.id}>
-                              <td>{request.tiffinName || 'Unknown Provider'}</td>
-                              <td>{new Date(request.assignedDateTime).toLocaleDateString()}</td>
-                              <td>
-                                <span className={`badge bg-${
-                                  request.status === 'PENDING' ? 'warning' :
-                                  request.status === 'ACCEPTED' ? 'success' :
-                                  request.status === 'REJECTED' ? 'danger' : 'secondary'
-                                }`}>
-                                  {request.status}
-                                </span>
-                              </td>
-                              <td>
-                                {request.status === 'PENDING' && (
-                                  <button 
-                                    className="btn btn-outline-danger btn-sm"
-                                    onClick={() => handleCancelRequest(request.id, 'tiffin')}
-                                  >
-                                    Cancel
-                                  </button>
-                                )}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="card">
-                  <div className="card-body text-center">
-                    <div className="mb-3">
-                      <span style={{fontSize: '3rem'}}>🍱</span>
-                    </div>
-                    <h5 className="text-muted">No Tiffin Requests Yet</h5>
-                    <p className="text-muted">Send requests to tiffin providers to see them here.</p>
-                    <a href="/user-dashboard/tiffins" className="btn btn-warning">
-                      Browse Tiffin Services
-                    </a>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Maid Requests Tab */}
-            <div className={`tab-pane fade ${activeTab === 'maid' ? 'show active' : ''}`}>
-              {bookings?.maidRequests && bookings.maidRequests.length > 0 ? (
-                <div className="card">
-                  <div className="card-body">
-                    <div className="table-responsive">
-                      <table className="table table-hover">
-                        <thead>
-                          <tr>
-                            <th>Maid Name</th>
-                            <th>Start Date</th>
-                            <th>End Date</th>
-                            <th>Request Date</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {bookings.maidRequests.map((request) => (
-                            <tr key={request.id}>
-                              <td>{request.maid?.name || 'Unknown Maid'}</td>
-                              <td>{request.startDate ? new Date(request.startDate).toLocaleDateString() : 'N/A'}</td>
-                              <td>{request.endDate ? new Date(request.endDate).toLocaleDateString() : 'N/A'}</td>
-                              <td>{new Date(request.assignedDateTime).toLocaleDateString()}</td>
-                              <td>
-                                <span className={`badge bg-${
-                                  request.status === 'PENDING' ? 'warning' :
-                                  request.status === 'ACCEPTED' ? 'success' :
-                                  request.status === 'REJECTED' ? 'danger' : 'secondary'
-                                }`}>
-                                  {request.status}
-                                </span>
-                              </td>
-                              <td>
-                                {request.status === 'PENDING' && (
-                                  <button 
-                                    className="btn btn-outline-danger btn-sm me-1"
-                                    onClick={() => handleCancelRequest(request.id, 'maid')}
-                                  >
-                                    Cancel
-                                  </button>
-                                )}
-                                {request.status === 'ACCEPTED' && (
-                                  <button 
-                                    className="btn btn-outline-primary btn-sm"
-                                    onClick={() => handleChangeMaid(request)}
-                                  >
-                                    Change Maid
-                                  </button>
-                                )}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="card">
-                  <div className="card-body text-center">
-                    <h5 className="text-muted">No Maid Requests</h5>
-                    <p className="text-muted">You haven't hired any maid services yet.</p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      
-    </div>
-  );
-};
-
-// Active Maid Services Component
-const ActiveMaidServices = () => {
-  const [activeServices, setActiveServices] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchActiveServices();
-  }, []);
-
-  const fetchActiveServices = async () => {
-    try {
-      const response = await api.get('/api/user/maids/active');
-      setActiveServices(response.data);
-      //Toast.success('Active maid services loaded successfully!');
-    } catch (error) {
-      //console.error('Error fetching active services:', error);
-      Toast.error('Error loading active maid services: ' + (error.response?.data || error.message));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="container mt-5">
-        <div className="text-center">
-          <div className="spinner-border" role="status">
-            <span className="visually-hidden">Loading...</span>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="container mt-4">
-      <div className="row">
-        <div className="col-12">
-          <h2 className="mb-4">👥 Active Maid Services</h2>
-        </div>
-      </div>
-
-      <div className="row">
-        {activeServices.length > 0 ? (
-          activeServices.map((service) => (
-            <div key={service.id} className="col-md-6 col-lg-4 mb-4">
-              <div className="card h-100">
-                <div className="card-body">
-                  <h5 className="card-title">{service.maid?.name}</h5>
-                  <p className="card-text">
-                    <strong>Contact:</strong> {service.maid?.phoneNumber || 'N/A'}<br/>
-                    <strong>Email:</strong> {service.maid?.email || 'N/A'}<br/>
-                    <strong>Region:</strong> {service.maid?.region || 'N/A'}<br/>
-                    <strong>Services:</strong> {service.maid?.services || 'N/A'}<br/>
-                    <strong>Service Date:</strong> {new Date(service.serviceDate).toLocaleDateString()}<br/>
-                    <strong>Time Slot:</strong> {service.timeSlot || 'N/A'}
-                  </p>
-                  <div className="mt-3">
-                    <span className="badge bg-success">Active Service</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))
-        ) : (
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #f8fafc 0%, #e0e7ff 100%)',
+      paddingTop: '2rem',
+      paddingBottom: '2rem'
+    }}>
+      <div className="container">
+        <div className="row">
           <div className="col-12">
-            <div className="card">
-              <div className="card-body text-center">
-                <h5 className="text-muted">No Active Services</h5>
-                <p className="text-muted">You don't have any active maid services at the moment.</p>
-              </div>
+            <h2 className="text-center mb-4">Tiffin Requests</h2>
+            <div className="alert alert-info">
+              <i className="fas fa-info-circle me-2"></i>
+              Tiffin requests feature is coming soon!
             </div>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
 };
 
-// Feedback Component for Maid 
-const Feedback = () => {
-  const [feedback, setFeedback] = useState([]);
-  const [maids, setMaids] = useState([]);
-  const [tiffins, setTiffins] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [feedbackType, setFeedbackType] = useState('maid'); // 'maid' or 'tiffin'
-  const [formData, setFormData] = useState({
-    maidId: '',
-    tiffinId: '',
-    rating: 5,
-    feedback: ''
-  });
-  const [message, setMessage] = useState('');
-
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
-    try {
-      const [maidFeedbackRes, maidsRes, tiffinFeedbackRes, tiffinsRes] = await Promise.all([
-        api.get('/api/user/feedback'),
-        api.get('/api/maid/available'),
-        api.get('/api/user/tiffin-feedback'),
-        api.get('/api/user/tiffins')
-      ]);
-      // Combine feedbacks with a type property
-      const maidFeedback = (maidFeedbackRes.data || []).map(f => ({...f, type: 'maid'}));
-      const tiffinFeedback = (tiffinFeedbackRes.data || []).map(f => ({...f, type: 'tiffin'}));
-      setFeedback([...maidFeedback, ...tiffinFeedback].sort((a, b) => b.id - a.id));
-      setMaids(maidsRes.data);
-      setTiffins(tiffinsRes.data);
-    } catch (error) {
-      //console.error('Error fetching data:', error);
-     Toast.error('Error loading feedback and maids: ');
-      console.error('Error fetching feedback data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-              await api.post('/api/user/feedback', formData);
-      Toast.success('Feedback submitted successfully!');
-      if (feedbackType === 'maid') {
-        await api.post('/api/user/feedback', {
-          maidId: formData.maidId,
-          rating: formData.rating,
-          feedback: formData.feedback
-        });
-      } else {
-        await api.post('/api/user/tiffin-feedback', {
-          tiffinId: formData.tiffinId,
-          rating: formData.rating,
-          feedback: formData.feedback
-        });
-      }
-      setMessage('Feedback submitted successfully!');
-      setShowForm(false);
-      setFormData({ maidId: '', tiffinId: '', rating: 5, feedback: '' });
-      fetchData();
-    } catch (error) {
-      Toast.error('Error submitting feedback: ' + error.response?.data);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="container mt-5">
-        <div className="text-center">
-          <div className="spinner-border" role="status">
-            <span className="visually-hidden">Loading...</span>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
+const MaidServices = () => {
   return (
-    <div className="container mt-4">
-      <div className="row">
-        <div className="col-12">
-          <h2 className="mb-4">⭐ Feedback & Ratings</h2>
-          {message && (
-            <div className={`alert alert-${message.includes('Error') ? 'danger' : 'success'}`}>
-              {message}
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #f8fafc 0%, #e0e7ff 100%)',
+      paddingTop: '2rem',
+      paddingBottom: '2rem'
+    }}>
+      <div className="container">
+        <div className="row">
+          <div className="col-12">
+            <h2 className="text-center mb-4">Maid Services</h2>
+            <div className="alert alert-info">
+              <i className="fas fa-info-circle me-2"></i>
+              Maid services feature is coming soon!
             </div>
-          )}
-        </div>
-      </div>
-      <div className="row mb-4">
-        <div className="col-12">
-          <button className="btn btn-primary" onClick={() => setShowForm(true)}>
-            + Give New Feedback
-          </button>
-        </div>
-      </div>
-      {/* Feedback Form Modal */}
-      {showForm && (
-        <div className="card mb-4">
-          <div className="card-header">
-            <h5>Submit Feedback</h5>
           </div>
-          <div className="card-body">
-            <form onSubmit={handleSubmit}>
-              <div className="mb-3">
-                <label className="form-label">Feedback For</label>
-                <select
-                  className="form-control"
-                  value={feedbackType}
-                  onChange={e => setFeedbackType(e.target.value)}
-                  required
-                >
-                  <option value="maid">Maid</option>
-                  <option value="tiffin">Tiffin</option>
-                </select>
-              </div>
-              {feedbackType === 'maid' ? (
-                <div className="mb-3">
-                  <label className="form-label">Select Maid</label>
-                  <select
-                    className="form-control"
-                    value={formData.maidId}
-                    onChange={e => setFormData({ ...formData, maidId: e.target.value })}
-                    required
-                  >
-                    <option value="">Choose a maid...</option>
-                    {maids.map(maid => (
-                      <option key={maid.id} value={maid.id}>
-                        {maid.name || `Maid ${maid.id}`} - {maid.services || 'Services not specified'} ({maid.region || 'Region not specified'})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              ) : (
-                <div className="mb-3">
-                  <label className="form-label">Select Tiffin Provider</label>
-                  <select
-                    className="form-control"
-                    value={formData.tiffinId}
-                    onChange={e => setFormData({ ...formData, tiffinId: e.target.value })}
-                    required
-                  >
-                    <option value="">Choose a tiffin provider...</option>
-                    {tiffins.map(tiffin => (
-                      <option key={tiffin.id} value={tiffin.id}>
-                        {tiffin.name || `Tiffin ${tiffin.id}`} - {tiffin.foodCategory || 'Category not specified'} ({tiffin.region || 'Region not specified'})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-              <div className="mb-3">
-                <label className="form-label">Rating</label>
-                <select
-                  className="form-control"
-                  value={formData.rating}
-                  onChange={e => setFormData({ ...formData, rating: parseInt(e.target.value) })}
-                  required
-                >
-                  <option value={5}>⭐⭐⭐⭐⭐ (5 stars)</option>
-                  <option value={4}>⭐⭐⭐⭐ (4 stars)</option>
-                  <option value={3}>⭐⭐⭐ (3 stars)</option>
-                  <option value={2}>⭐⭐ (2 stars)</option>
-                  <option value={1}>⭐ (1 star)</option>
-                </select>
-              </div>
-              <div className="mb-3">
-                <label className="form-label">Comment</label>
-                <textarea
-                  className="form-control"
-                  rows="3"
-                  value={formData.feedback}
-                  onChange={e => setFormData({ ...formData, feedback: e.target.value })}
-                  required
-                ></textarea>
-              </div>
-              <div className="d-flex gap-2">
-                <button type="submit" className="btn btn-success">
-                  Submit Feedback
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={() => setShowForm(false)}
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-      {/* Feedback List */}
-      <div className="row">
-        <div className="col-12">
-          <h4>My Feedback History</h4>
-          {feedback.length > 0 ? (
-            <div className="card">
-              <div className="card-body">
-                {feedback.map(item => (
-                  <div key={item.id + '-' + item.type} className="border-bottom pb-3 mb-3">
-                    <div className="d-flex justify-content-between align-items-start">
-                      <div>
-                        <h6>
-                          {item.type === 'maid'
-                            ? (item.maid?.name || 'Unknown Maid')
-                            : (item.tiffin?.name || 'Unknown Tiffin')}
-                        </h6>
-                        <div className="text-warning">{'⭐'.repeat(item.rating)}</div>
-                        <p className="mt-2">{item.feedback}</p>
-                        <span className="badge bg-info text-dark">{item.type === 'maid' ? 'Maid' : 'Tiffin'}</span>
-                      </div>
-                      <small className="text-muted">
-                        {new Date(item.id).toLocaleDateString()}
-                      </small>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <div className="card">
-              <div className="card-body text-center">
-                <h5 className="text-muted">No Feedback Yet</h5>
-                <p className="text-muted">Submit your first feedback to help others!</p>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>
   );
 };
 
+const MyBookings = () => {
+  return (
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #f8fafc 0%, #e0e7ff 100%)',
+      paddingTop: '2rem',
+      paddingBottom: '2rem'
+    }}>
+      <div className="container">
+        <div className="row">
+          <div className="col-12">
+            <h2 className="text-center mb-4">My Bookings</h2>
+            <div className="alert alert-info">
+              <i className="fas fa-info-circle me-2"></i>
+              My bookings feature is coming soon!
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
+const ActiveMaidServices = () => {
+  return (
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #f8fafc 0%, #e0e7ff 100%)',
+      paddingTop: '2rem',
+      paddingBottom: '2rem'
+    }}>
+      <div className="container">
+        <div className="row">
+          <div className="col-12">
+            <h2 className="text-center mb-4">Active Maid Services</h2>
+            <div className="alert alert-info">
+              <i className="fas fa-info-circle me-2"></i>
+              Active maid services feature is coming soon!
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
-
-
-
+const Feedback = () => {
+  return (
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #f8fafc 0%, #e0e7ff 100%)',
+      paddingTop: '2rem',
+      paddingBottom: '2rem'
+    }}>
+      <div className="container">
+        <div className="row">
+          <div className="col-12">
+            <h2 className="text-center mb-4">Feedback</h2>
+            <div className="alert alert-info">
+              <i className="fas fa-info-circle me-2"></i>
+              Feedback feature is coming soon!
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 // Main UserDashboard Component
 function UserDashboard() {

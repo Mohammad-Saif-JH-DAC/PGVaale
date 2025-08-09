@@ -74,6 +74,11 @@ public class JwtRequestFilter extends OncePerRequestFilter {
                     return;
                 }
 
+                // Ensure role has ROLE_ prefix for Spring Security
+                if (!role.startsWith("ROLE_")) {
+                    role = "ROLE_" + role;
+                }
+
                 // Create authorities and set authentication
                 List<SimpleGrantedAuthority> authorities = List.of(new SimpleGrantedAuthority(role));
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(username, null,

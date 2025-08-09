@@ -67,16 +67,41 @@ public class TiffinController {
                 tiffins = tiffinRepository.findByApprovedTrue();
             }
             
-            // Set default values for missing fields to ensure frontend compatibility
+            // Calculate dynamic ratings for each tiffin
             tiffins.forEach(tiffin -> {
+                // Calculate average rating for this tiffin
+                List<Feedback_Tiffin> feedbacks = feedbackTiffinRepository.findByTiffinId(tiffin.getId());
+                double averageRating = 0.0;
+                
+                if (!feedbacks.isEmpty()) {
+                    // Filter out null ratings and calculate average
+                    List<Integer> validRatings = feedbacks.stream()
+                        .map(Feedback_Tiffin::getRating)
+                        .filter(rating -> rating != null && rating > 0)
+                        .collect(Collectors.toList());
+                    
+                    if (!validRatings.isEmpty()) {
+                        averageRating = validRatings.stream()
+                            .mapToInt(Integer::intValue)
+                            .average()
+                            .orElse(0.0);
+                    }
+                }
+                
+                // Set default values for missing fields to ensure frontend compatibility
                 if (tiffin.getName() == null) tiffin.setName("Tiffin Provider " + tiffin.getId());
-                if (tiffin.getCuisine() == null) tiffin.setCuisine("North Indian"); // Default cuisine
                 if (tiffin.getMealType() == null) tiffin.setMealType("Full Day");
                 if (tiffin.getPricePerMeal() == null) tiffin.setPricePerMeal(tiffin.getPrice());
-                if (tiffin.getRating() == null) tiffin.setRating(4.5);
                 if (tiffin.getDescription() == null) tiffin.setDescription("Delicious home-cooked meals delivered to your doorstep.");
                 if (tiffin.getIsVegetarian() == null) tiffin.setIsVegetarian("Veg".equalsIgnoreCase(tiffin.getFoodCategory()));
                 if (tiffin.getProfileImage() == null) tiffin.setProfileImage("https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=150&q=80");
+                
+                // Set the dynamic rating (rounded to 1 decimal place, or null if no ratings)
+                if (averageRating > 0) {
+                    tiffin.setRating(Math.round(averageRating * 10.0) / 10.0);
+                } else {
+                    tiffin.setRating(null); // No ratings yet
+                }
             });
             
             return ResponseEntity.ok(tiffins);

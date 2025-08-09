@@ -99,13 +99,14 @@ public class SecurityConfig {
                         .permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
                         // Role-based endpoints
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/api/owner/**").hasRole("OWNER")
-                        .requestMatchers("/api/user/**").hasAnyRole("USER", "ADMIN")
-                        .requestMatchers("/api/maid/**").hasRole("MAID")
-                        .requestMatchers("/api/tiffin/**").hasRole("TIFFIN")
-                        .requestMatchers("/api/contactUs/all").hasRole("ADMIN")
-                        .requestMatchers("/api/pgs/**").hasAnyRole("OWNER", "USER", "ADMIN") // pg->pgs
+                        .requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
+                        .requestMatchers("/api/owner/**").hasAuthority("ROLE_OWNER")
+                        .requestMatchers("/api/user/**").hasAnyAuthority("ROLE_USER", "ROLE_ADMIN")
+                        .requestMatchers("/api/maid/**").hasAuthority("ROLE_MAID")
+                        .requestMatchers("/api/tiffin/book/**").hasAnyAuthority("ROLE_USER", "ROLE_ADMIN") // Allow users to book tiffin services
+                        .requestMatchers("/api/tiffin/**").hasAuthority("ROLE_TIFFIN")
+                        .requestMatchers("/api/contactUs/all").hasAuthority("ROLE_ADMIN")
+                        .requestMatchers("/api/pgs/**").hasAnyAuthority("ROLE_OWNER", "ROLE_USER", "ROLE_ADMIN") // pg->pgs
                         .anyRequest().authenticated())
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 

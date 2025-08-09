@@ -119,7 +119,8 @@ public class TiffinService {
         // Check if request already exists
         Optional<UserTiffin> existingRequest = userTiffinRepository.findByUserIdAndTiffinId(userId, tiffinId);
         if (existingRequest.isPresent()) {
-            throw new RuntimeException("Request already exists");
+            // Return the existing request instead of throwing an exception
+            return UserTiffinDTO.fromEntity(existingRequest.get());
         }
         
         UserTiffin userTiffin = UserTiffin.builder()

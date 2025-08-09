@@ -214,8 +214,18 @@ function TiffinHiring() {
                         <span className="text-muted small">/meal</span>
                       </div>
                       <div className="text-warning">
-                        <i className="fas fa-star"></i>
-                        <span className="ms-1">{provider.rating || 4.5}</span>
+                        {provider.rating && provider.rating > 0 ? (
+                          <>
+                            <i className="fas fa-star"></i>
+                            <span className="ms-1">{provider.rating.toFixed(1)}</span>
+                            <span className="text-muted small ms-1">({Math.round(provider.rating)}/5)</span>
+                          </>
+                        ) : (
+                          <>
+                            <i className="fas fa-star text-muted"></i>
+                            <span className="ms-1 text-muted">No ratings yet</span>
+                          </>
+                        )}
                       </div>
                     </div>
 
