@@ -1,23 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authApi } from '../api';
-import { toast } from 'react-toastify'; // ✅ Added
-
-const roles = [
-  { label: 'Admin', value: 'admin' },
-  { label: 'User', value: 'user' },
-  { label: 'Owner', value: 'owner' },
-  { label: 'Tiffin', value: 'tiffin' },
-  { label: 'Maid', value: 'maid' },
-];
+import { toast } from 'react-toastify';
 
 function Login() {
   const navigate = useNavigate();
-  const [form, setForm] = useState({ username: '', password: '', role: 'user' });
+  const [form, setForm] = useState({ username: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // ✅ Redirect to appropriate dashboard if already logged in
+  // Redirect to appropriate dashboard if already logged in
   useEffect(() => {
     const token = sessionStorage.getItem('token');
     if (token) {
@@ -33,7 +25,7 @@ function Login() {
         // Redirect to role-specific dashboard
         if (userRole === 'admin') navigate('/admin');
         else if (userRole === 'owner') navigate('/owner-dashboard');
-        else if (userRole === 'user') navigate('/user-dashboard');
+        else if (userRole === 'user') navigate('/pgrooms');
         else if (userRole === 'tiffin') navigate('/tiffin-dashboard');
         else if (userRole === 'maid') navigate('/maid-dashboard');
         else navigate('/');
@@ -49,6 +41,24 @@ function Login() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
+  // Function to try login with different roles
+  const tryLoginWithRole = async (role) => {
+    try {
+      const res = await authApi.post(`/api/${role}/login`, {
+        username: form.username,
+        password: form.password
+      });
+      return res.data.token;
+    } catch (error) {
+      // If it's a 401 (unauthorized), this role doesn't match
+      if (error.response && error.response.status === 401) {
+        return null;
+      }
+      // For other errors, throw them to be handled by the main error handler
+      throw error;
+    }
+  };
+
   const handleSubmit = async e => {
     e.preventDefault();
     setError('');
@@ -56,18 +66,33 @@ function Login() {
 
     try {
       sessionStorage.removeItem('token');
+      sessionStorage.removeItem('userRole');
 
-      const res = await authApi.post(`/api/${form.role}/login`, {
-        username: form.username,
-        password: form.password
-      });
+      // Try to login with each role until one succeeds
+      const roles = ['user', 'admin', 'owner', 'tiffin', 'maid'];
+      let token = null;
+      let successfulRole = null;
 
-      const token = res.data.token;
-      if (token) {
+      for (const role of roles) {
+        try {
+          token = await tryLoginWithRole(role);
+          if (token) {
+            successfulRole = role;
+            break;
+          }
+        } catch (error) {
+          // If it's not a 401 error, it's a real error that should be shown
+          if (!error.response || error.response.status !== 401) {
+            throw error;
+          }
+        }
+      }
+
+      if (token && successfulRole) {
         sessionStorage.setItem('token', token);
-        sessionStorage.setItem('userRole', form.role);
+        sessionStorage.setItem('userRole', successfulRole);
 
-        // ✅ Toast on success
+        // Toast on success
         toast.success('Login successful!');
 
         setTimeout(() => {
@@ -85,12 +110,17 @@ function Login() {
           userRole = payload.authorities[0].authority.replace('ROLE_', '').toLowerCase();
         }
 
+        // Redirect based on the detected role
         if (userRole === 'admin') navigate('/admin');
         else if (userRole === 'owner') navigate('/owner-dashboard');
-        else if (userRole === 'user') navigate('/user-dashboard');
+        else if (userRole === 'user') navigate('/pgrooms');
         else if (userRole === 'tiffin') navigate('/tiffin-dashboard');
         else if (userRole === 'maid') navigate('/maid-dashboard');
         else navigate('/');
+      } else {
+        // No successful login found
+        setError('Invalid username or password. Please check your credentials and try again.');
+        toast.error('Invalid username or password');
       }
     } catch (err) {
       console.error('Login error:', err);
@@ -110,7 +140,7 @@ function Login() {
         errorMessage = 'Network error. Please check your connection.';
       }
 
-      // ✅ Toast on error
+      // Toast on error
       toast.error(errorMessage);
       setError(errorMessage);
     } finally {
@@ -177,7 +207,7 @@ function Login() {
                     />
                   </div>
 
-                  <div className="mb-3">
+                  <div className="mb-4">
                     <label className="form-label fw-semibold d-flex align-items-center" style={{ color: '#374151' }}>
                       <i className="fas fa-lock text-primary me-2"></i>Password
                     </label>
@@ -192,25 +222,6 @@ function Login() {
                       placeholder="Enter your password"
                       style={{ background: '#f8fafc' }}
                     />
-                  </div>
-
-                  <div className="mb-4">
-                    <label className="form-label fw-semibold d-flex align-items-center" style={{ color: '#374151' }}>
-                      <i className="fas fa-users text-primary me-2"></i>Role
-                    </label>
-                    <select 
-                      className="form-select form-select-lg border-0 shadow-sm rounded-3" 
-                      name="role" 
-                      value={form.role} 
-                      onChange={handleChange} 
-                      required
-                      disabled={loading}
-                      style={{ background: '#f8fafc' }}
-                    >
-                      {roles.map(r => (
-                        <option key={r.value} value={r.value}>{r.label}</option>
-                      ))}
-                    </select>
                   </div>
 
                   {/* Error Message */}
