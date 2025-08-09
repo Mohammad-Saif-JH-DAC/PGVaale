@@ -74,7 +74,6 @@ function PGRooms() {
   // Handle opening room details modal
   const handleViewDetails = (room) => {
     console.log('Selected Room:', room);
-    Toast.log('Selected Room:', room);
     setSelectedRoom(room);
     setShowModal(true);
   };

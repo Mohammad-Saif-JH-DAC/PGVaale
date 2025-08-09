@@ -21,7 +21,7 @@ public class JwtUtil {
 
     // Decode the key and create SecretKey
     private final SecretKey SECRET_KEY = Keys.hmacShaKeyFor(Base64.getDecoder().decode(SECRET_STRING));
-    private final long EXPIRATION_TIME = 1000 * 60 * 60 * 10; // 10 hours
+    private final long EXPIRATION_TIME = 1000 * 60 * 60 * 1; // 1 hours
 
     public String extractUsername(String token) {
         try {

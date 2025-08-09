@@ -213,7 +213,7 @@ const Profile = () => {
     <div className="container mt-4">
       <div className="row">
         <div className="col-12">
-          <h2 className="mb-4">👤 Profile</h2>
+          <h2 className="mb-4">Profile</h2>
           {message && (
             <div className={`alert alert-${message.includes('Error') ? 'danger' : 'success'}`}>
               {message}

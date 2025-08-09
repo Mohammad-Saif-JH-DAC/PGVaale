@@ -5,6 +5,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import com.pgvaale.backend.entity.Feedback_Web;
 
+import java.util.List;
+
 public interface Feedback_WebRepository extends JpaRepository<Feedback_Web, Long> {
 
     @Query("SELECT AVG(f.rating) FROM Feedback_Web f")

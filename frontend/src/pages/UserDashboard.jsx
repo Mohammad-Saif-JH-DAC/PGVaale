@@ -880,6 +880,221 @@ const ActiveMaidServices = () => {
 };
 
 const Feedback = () => {
+  const [rating, setRating] = useState(0);
+  const [hover, setHover] = useState(0);
+  const [feedback, setFeedback] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [userFeedback, setUserFeedback] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [feedbackType, setFeedbackType] = useState('web'); // 'web', 'maid', 'tiffin'
+  const [selectedMaid, setSelectedMaid] = useState('');
+  const [selectedTiffin, setSelectedTiffin] = useState('');
+  const [maids, setMaids] = useState([]);
+  const [tiffins, setTiffins] = useState([]);
+  const [loadingOptions, setLoadingOptions] = useState(false);
+
+  // Check if user is authenticated
+  const token = sessionStorage.getItem('token');
+  const isAuthenticated = !!token;
+
+  const emojiMap = {
+    1: { icon: '😠', label: 'Very Bad' },
+    2: { icon: '😞', label: 'Bad' },
+    3: { icon: '😐', label: 'Okay' },
+    4: { icon: '🙂', label: 'Good' },
+    5: { icon: '😄', label: 'Excellent' },
+  };
+
+  const handleClick = (value) => setRating(value);
+  const handleHover = (value) => setHover(value);
+  const handleLeave = () => setHover(0);
+
+  // Fetch available maids and tiffins
+  const fetchOptions = async () => {
+    if (!isAuthenticated) return;
+    
+    setLoadingOptions(true);
+    try {
+      // Fetch maids
+      const maidsResponse = await api.get('/api/user/maids');
+      setMaids(maidsResponse.data || []);
+      
+      // Fetch tiffins
+      const tiffinsResponse = await api.get('/api/user/tiffins');
+      setTiffins(tiffinsResponse.data || []);
+    } catch (error) {
+      console.error('Error fetching options:', error);
+    } finally {
+      setLoadingOptions(false);
+    }
+  };
+
+  // Fetch user's previous feedback
+  const fetchUserFeedback = async () => {
+    if (!isAuthenticated) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const [webFeedback, maidFeedback, tiffinFeedback] = await Promise.all([
+        api.get('/api/feedback-web/user').catch(() => ({ data: [] })),
+        api.get('/api/user/feedback').catch(() => ({ data: [] })),
+        api.get('/api/user/tiffin-feedback').catch(() => ({ data: [] }))
+      ]);
+
+      const allFeedback = [
+        ...(webFeedback.data || []).map(f => ({ ...f, type: 'web' })),
+        ...(maidFeedback.data || []).map(f => ({ ...f, type: 'maid' })),
+        ...(tiffinFeedback.data || []).map(f => ({ ...f, type: 'tiffin' }))
+      ];
+
+      setUserFeedback(allFeedback);
+    } catch (error) {
+      console.error('Error fetching user feedback:', error);
+      setUserFeedback([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUserFeedback();
+    fetchOptions();
+  }, [isAuthenticated]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!isAuthenticated) {
+      Toast.error('Please log in to submit feedback.');
+      return;
+    }
+
+    if (rating === 0) {
+      Toast.error('Please select a rating.');
+      return;
+    }
+
+    if (!feedback.trim()) {
+      Toast.error('Please provide feedback.');
+      return;
+    }
+
+    // Validate service selection for maid and tiffin feedback
+    if (feedbackType === 'maid' && !selectedMaid) {
+      Toast.error('Please select a maid.');
+      return;
+    }
+
+    if (feedbackType === 'tiffin' && !selectedTiffin) {
+      Toast.error('Please select a tiffin service.');
+      return;
+    }
+
+    setSubmitting(true);
+
+    try {
+      let response;
+      
+      switch (feedbackType) {
+        case 'maid':
+          response = await api.post('/api/user/feedback', {
+            maidId: selectedMaid,
+            rating,
+            feedback: feedback.trim()
+          });
+          break;
+        case 'tiffin':
+          response = await api.post('/api/user/tiffin-feedback', {
+            tiffinId: selectedTiffin,
+            rating,
+            feedback: feedback.trim()
+          });
+          break;
+        default: // web
+          response = await api.post('/api/feedback-web', {
+            rating,
+            feedback: feedback.trim()
+          });
+          break;
+      }
+
+      if (response.status === 200 || response.status === 201) {
+        Toast.success('Thank you for your feedback!');
+        setSubmitted(true);
+        setRating(0);
+        setFeedback('');
+        setSelectedMaid('');
+        setSelectedTiffin('');
+        // Refresh the feedback list
+        fetchUserFeedback();
+      } else {
+        Toast.error('Failed to submit feedback. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error submitting feedback:', error);
+      Toast.error('Failed to submit feedback. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const resetForm = () => {
+    setSubmitted(false);
+    setRating(0);
+    setFeedback('');
+    setSelectedMaid('');
+    setSelectedTiffin('');
+    setFeedbackType('web');
+  };
+
+  const getFeedbackTypeLabel = (type) => {
+    switch (type) {
+      case 'maid': return 'Maid Service';
+      case 'tiffin': return 'Tiffin Service';
+      default: return 'General Feedback';
+    }
+  };
+
+  if (!isAuthenticated) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, #f8fafc 0%, #e0e7ff 100%)',
+        paddingTop: '2rem',
+        paddingBottom: '2rem'
+      }}>
+        <div className="container">
+          <div className="row justify-content-center">
+            <div className="col-md-8 col-lg-6">
+              <div className="card border-0 shadow-lg rounded-4 text-center">
+                <div className="card-body p-5">
+                  <div className="mb-4">
+                    <i className="fas fa-lock text-warning" style={{fontSize: '4rem'}}></i>
+                  </div>
+                  <h3 className="fw-bold mb-3" style={{ color: '#2C3E50' }}>Login Required</h3>
+                  <p className="text-muted mb-4">
+                    Please log in to submit feedback and help us improve our services.
+                  </p>
+                  <button 
+                    className="btn btn-primary rounded-3 px-4"
+                    style={{ background: 'linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)', border: 'none' }}
+                    onClick={() => window.location.href = '/login'}
+                  >
+                    <i className="fas fa-sign-in-alt me-2"></i>
+                    Go to Login
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{
       minHeight: '100vh',
@@ -888,12 +1103,314 @@ const Feedback = () => {
       paddingBottom: '2rem'
     }}>
       <div className="container">
+        {/* Header Section */}
+        <div className="text-center mb-5">
+          <h1 className="display-5 fw-bold mb-3" style={{ color: '#2C3E50' }}>
+            <i className="fas fa-star text-primary me-3"></i>
+            Feedback & Reviews
+          </h1>
+          <p className="lead text-muted mb-4">
+            Share your experience and help us improve our services
+          </p>
+        </div>
+
         <div className="row">
-          <div className="col-12">
-            <h2 className="text-center mb-4">Feedback</h2>
-            <div className="alert alert-info">
-              <i className="fas fa-info-circle me-2"></i>
-              Feedback feature is coming soon!
+          {/* Feedback Form */}
+          <div className="col-lg-8">
+            <div className="card border-0 shadow-lg rounded-4 mb-4">
+              <div className="card-header border-0 bg-transparent">
+                <h5 className="fw-bold mb-0" style={{ color: '#2C3E50' }}>
+                  <i className="fas fa-comment-dots text-primary me-2"></i>
+                  Submit Your Feedback
+                </h5>
+              </div>
+              <div className="card-body p-4">
+                {submitted ? (
+                  <div className="text-center">
+                    <div className="mb-3">
+                      <i className="fas fa-check-circle text-success" style={{fontSize: '4rem'}}></i>
+                    </div>
+                    <h4 className="fw-bold mb-3" style={{ color: '#2C3E50' }}>Thank You!</h4>
+                    <p className="text-muted mb-4">
+                      Your feedback has been submitted successfully. We appreciate your input!
+                    </p>
+                    <button 
+                      className="btn btn-primary rounded-3 px-4"
+                      style={{ background: 'linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)', border: 'none' }}
+                      onClick={resetForm}
+                    >
+                      <i className="fas fa-plus me-2"></i>
+                      Submit Another Feedback
+                    </button>
+                  </div>
+                ) : (
+                  <form onSubmit={handleSubmit}>
+                    {/* Feedback Type Selection */}
+                    <div className="mb-4">
+                      <label className="form-label fw-semibold" style={{ color: '#374151' }}>
+                        <i className="fas fa-tag text-primary me-2"></i>
+                        Select Feedback Type
+                      </label>
+                      <div className="row">
+                        <div className="col-md-4">
+                          <div className="form-check">
+                            <input
+                              className="form-check-input"
+                              type="radio"
+                              name="feedbackType"
+                              id="webFeedback"
+                              value="web"
+                              checked={feedbackType === 'web'}
+                              onChange={(e) => setFeedbackType(e.target.value)}
+                            />
+                            <label className="form-check-label" htmlFor="webFeedback">
+                              <i className="fas fa-globe text-primary me-2"></i>
+                              General Feedback
+                            </label>
+                          </div>
+                        </div>
+                        <div className="col-md-4">
+                          <div className="form-check">
+                            <input
+                              className="form-check-input"
+                              type="radio"
+                              name="feedbackType"
+                              id="maidFeedback"
+                              value="maid"
+                              checked={feedbackType === 'maid'}
+                              onChange={(e) => setFeedbackType(e.target.value)}
+                            />
+                            <label className="form-check-label" htmlFor="maidFeedback">
+                              <i className="fas fa-user-tie text-primary me-2"></i>
+                              Maid Service
+                            </label>
+                          </div>
+                        </div>
+                        <div className="col-md-4">
+                          <div className="form-check">
+                            <input
+                              className="form-check-input"
+                              type="radio"
+                              name="feedbackType"
+                              id="tiffinFeedback"
+                              value="tiffin"
+                              checked={feedbackType === 'tiffin'}
+                              onChange={(e) => setFeedbackType(e.target.value)}
+                            />
+                            <label className="form-check-label" htmlFor="tiffinFeedback">
+                              <i className="fas fa-utensils text-primary me-2"></i>
+                              Tiffin Service
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Service Selection for Maid and Tiffin */}
+                    {feedbackType === 'maid' && (
+                      <div className="mb-4">
+                        <label className="form-label fw-semibold" style={{ color: '#374151' }}>
+                          <i className="fas fa-user-tie text-primary me-2"></i>
+                          Select Maid
+                        </label>
+                        {loadingOptions ? (
+                          <div className="text-center">
+                            <div className="spinner-border spinner-border-sm text-primary" role="status">
+                              <span className="visually-hidden">Loading...</span>
+                            </div>
+                            <span className="ms-2">Loading maids...</span>
+                          </div>
+                        ) : (
+                          <select
+                            className="form-select rounded-3 shadow-sm"
+                            value={selectedMaid}
+                            onChange={(e) => setSelectedMaid(e.target.value)}
+                            required
+                            style={{ background: '#f8fafc', border: '1px solid #e5e7eb' }}
+                          >
+                            <option value="">Select a maid...</option>
+                            {maids.map((maid) => (
+                              <option key={maid.id} value={maid.id}>
+                                {maid.name} - {maid.specialization}
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                      </div>
+                    )}
+
+                    {feedbackType === 'tiffin' && (
+                      <div className="mb-4">
+                        <label className="form-label fw-semibold" style={{ color: '#374151' }}>
+                          <i className="fas fa-utensils text-primary me-2"></i>
+                          Select Tiffin Service
+                        </label>
+                        {loadingOptions ? (
+                          <div className="text-center">
+                            <div className="spinner-border spinner-border-sm text-primary" role="status">
+                              <span className="visually-hidden">Loading...</span>
+                            </div>
+                            <span className="ms-2">Loading tiffin services...</span>
+                          </div>
+                        ) : (
+                          <select
+                            className="form-select rounded-3 shadow-sm"
+                            value={selectedTiffin}
+                            onChange={(e) => setSelectedTiffin(e.target.value)}
+                            required
+                            style={{ background: '#f8fafc', border: '1px solid #e5e7eb' }}
+                          >
+                            <option value="">Select a tiffin service...</option>
+                            {tiffins.map((tiffin) => (
+                              <option key={tiffin.id} value={tiffin.id}>
+                                {tiffin.name} - {tiffin.category}
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="mb-4 text-center">
+                      <label className="form-label fw-semibold mb-3" style={{ color: '#374151' }}>
+                        How would you rate your experience with {getFeedbackTypeLabel(feedbackType)}?
+                      </label>
+                      <div className="mb-3">
+                        {[1, 2, 3, 4, 5].map((value) => (
+                          <button
+                            type="button"
+                            key={value}
+                            className="btn btn-link p-0 mx-2"
+                            style={{
+                              fontSize: '2.5rem',
+                              opacity: (hover || rating) === value ? 1 : 0.5,
+                              transform: (hover || rating) === value ? 'scale(1.2)' : 'scale(1)',
+                              transition: 'transform 0.2s',
+                              textShadow: (hover || rating) === value ? '0 2px 8px #6366F1' : 'none',
+                            }}
+                            onClick={() => handleClick(value)}
+                            onMouseEnter={() => handleHover(value)}
+                            onMouseLeave={handleLeave}
+                            title={emojiMap[value].label}
+                          >
+                            {emojiMap[value].icon}
+                          </button>
+                        ))}
+                      </div>
+                      {hover !== 0 || rating !== 0 ? (
+                        <div className="fw-semibold" style={{ fontSize: '1.1em', color: '#6366F1' }}>
+                          {(hover ? emojiMap[hover] : emojiMap[rating]).label}
+                        </div>
+                      ) : (
+                        <div style={{ fontSize: '0.9em', color: '#888' }}>Click an emoji to rate</div>
+                      )}
+                    </div>
+
+                    <div className="mb-4">
+                      <label className="form-label fw-semibold" style={{ color: '#374151' }}>
+                        Tell us more about your experience:
+                      </label>
+                      <textarea
+                        className="form-control rounded-3 shadow-sm"
+                        rows={4}
+                        value={feedback}
+                        onChange={(e) => setFeedback(e.target.value)}
+                        placeholder="Share your thoughts, suggestions, or any issues you've encountered..."
+                        required
+                        style={{ background: '#f8fafc', border: '1px solid #e5e7eb' }}
+                      />
+                    </div>
+
+                    <div className="text-center">
+                      <button 
+                        type="submit" 
+                        className="btn btn-primary rounded-3 px-5"
+                        disabled={submitting || rating === 0 || !feedback.trim()}
+                        style={{ 
+                          background: 'linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)', 
+                          border: 'none',
+                          opacity: (submitting || rating === 0 || !feedback.trim()) ? 0.6 : 1
+                        }}
+                      >
+                        {submitting ? (
+                          <>
+                            <i className="fas fa-spinner fa-spin me-2"></i>
+                            Submitting...
+                          </>
+                        ) : (
+                          <>
+                            <i className="fas fa-paper-plane me-2"></i>
+                            Submit Feedback
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Previous Feedback */}
+          <div className="col-lg-4">
+            <div className="card border-0 shadow-lg rounded-4">
+              <div className="card-header border-0 bg-transparent">
+                <h5 className="fw-bold mb-0" style={{ color: '#2C3E50' }}>
+                  <i className="fas fa-history text-primary me-2"></i>
+                  Your Previous Feedback
+                </h5>
+              </div>
+              <div className="card-body p-4">
+                {loading ? (
+                  <div className="text-center">
+                    <div className="spinner-border text-primary" role="status">
+                      <span className="visually-hidden">Loading...</span>
+                    </div>
+                  </div>
+                ) : userFeedback.length > 0 ? (
+                  <div className="space-y-3">
+                    {userFeedback.map((item, index) => (
+                      <div key={index} className="border-bottom pb-3 mb-3">
+                        <div className="d-flex justify-content-between align-items-center mb-2">
+                          <div className="d-flex align-items-center">
+                            {[...Array(5)].map((_, i) => (
+                              <span key={i} className="me-1">
+                                {i < item.rating ? '⭐' : '☆'}
+                              </span>
+                            ))}
+                          </div>
+                          <small className="text-muted">
+                            {new Date(item.createdAt || Date.now()).toLocaleDateString()}
+                          </small>
+                        </div>
+                        <div className="mb-2">
+                          <span className={`badge ${item.type === 'maid' ? 'bg-primary' : item.type === 'tiffin' ? 'bg-success' : 'bg-secondary'} me-2`}>
+                            {getFeedbackTypeLabel(item.type)}
+                          </span>
+                          {item.type === 'maid' && item.maid && (
+                            <small className="text-muted">
+                              <i className="fas fa-user-tie me-1"></i>
+                              {item.maid.name}
+                            </small>
+                          )}
+                          {item.type === 'tiffin' && item.tiffin && (
+                            <small className="text-muted">
+                              <i className="fas fa-utensils me-1"></i>
+                              {item.tiffin.name}
+                            </small>
+                          )}
+                        </div>
+                        <p className="mb-0 text-muted small">{item.feedback}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center text-muted">
+                    <i className="fas fa-comment-slash mb-2" style={{fontSize: '2rem'}}></i>
+                    <p className="mb-0">No previous feedback submitted yet.</p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
