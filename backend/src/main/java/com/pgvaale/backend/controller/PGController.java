@@ -92,9 +92,12 @@ public class PGController {
     public ResponseEntity<List<PG>> getAllPGs(
             @RequestParam(required = false) String region,
             @RequestParam(required = false) String generalPreference,
-            @RequestParam(required = false) Boolean availability) {
+            @RequestParam(required = false) Boolean availability,
+            @RequestParam(required = false) Double minRent,
+            @RequestParam(required = false) Double maxRent) {
 
         List<PG> pgs = pgService.getAllPGs();
+        
         // Apply filters
         if (region != null) {
             pgs = pgs.stream().filter(pg -> pg.getRegion().equalsIgnoreCase(region)).collect(Collectors.toList());
@@ -110,6 +113,12 @@ public class PGController {
                     return false;
                 return availability ? avail.equalsIgnoreCase("available") : !avail.equalsIgnoreCase("available");
             }).collect(Collectors.toList());
+        }
+        if (minRent != null) {
+            pgs = pgs.stream().filter(pg -> pg.getRent() >= minRent).collect(Collectors.toList());
+        }
+        if (maxRent != null) {
+            pgs = pgs.stream().filter(pg -> pg.getRent() <= maxRent).collect(Collectors.toList());
         }
 
         return ResponseEntity.ok(pgs);
@@ -236,45 +245,36 @@ public class PGController {
     @PostMapping("/{pgId}/book")
     public ResponseEntity<?> bookPG(@PathVariable Long pgId) {
         try {
-            System.out.println("DEBUG: Booking request for PG ID: " + pgId);
             
             // Get authenticated user
             org.springframework.security.core.Authentication auth = 
                 org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
             String username = auth.getName();
-            System.out.println("DEBUG: Authenticated username: " + username);
             
             // Find the PG
             Optional<PG> pgOptional = pgRepository.findById(pgId);
             if (!pgOptional.isPresent()) {
-                System.out.println("DEBUG: PG not found with ID: " + pgId);
                 return ResponseEntity.notFound().build();
             }
             
             PG pg = pgOptional.get();
-            System.out.println("DEBUG: Found PG: " + pg.getId() + ", Current availability: " + pg.getAvailability());
-            System.out.println("DEBUG: Current registered user: " + (pg.getRegisteredUser() != null ? pg.getRegisteredUser().getUsername() : "null"));
             
             // Check if already booked
             if ("Not Available".equals(pg.getAvailability()) || pg.getRegisteredUser() != null) {
-                System.out.println("DEBUG: PG is already booked");
                 return ResponseEntity.badRequest().body("PG is already booked");
             }
             
             // Find the user by username
             com.pgvaale.backend.entity.User user = findUserByUsername(username);
             if (user == null) {
-                System.out.println("DEBUG: User not found with username: " + username);
                 return ResponseEntity.badRequest().body("User not found: " + username);
             }
-            System.out.println("DEBUG: Found user: " + user.getUsername() + ", ID: " + user.getId());
             
             // Book the PG
             pg.setRegisteredUser(user);
             pg.setAvailability("Not Available");
             
             PG savedPG = pgRepository.save(pg);
-            System.out.println("DEBUG: PG booked successfully. New availability: " + savedPG.getAvailability());
             
             return ResponseEntity.ok(Map.of(
                 "message", "PG booked successfully",
@@ -283,7 +283,6 @@ public class PGController {
                 "availability", "Not Available"
             ));
         } catch (Exception e) {
-            System.out.println("DEBUG: Exception occurred: " + e.getMessage());
             e.printStackTrace();
             return ResponseEntity.status(500).body(Map.of(
                 "error", "Internal server error",

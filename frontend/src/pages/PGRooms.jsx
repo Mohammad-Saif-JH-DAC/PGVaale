@@ -27,6 +27,7 @@ function PGRooms() {
     region: '',
     generalPreference: '',
     availability: '',
+    maxRent: '',
   });
   const [bookingStatus, setBookingStatus] = useState({});
   const [showModal, setShowModal] = useState(false);
@@ -38,16 +39,30 @@ function PGRooms() {
       let url = '/api/pg/all';
       const queryParams = [];
 
-      if (filterParams.region) queryParams.push(`region=${encodeURIComponent(filterParams.region)}`);
-      if (filterParams.generalPreference)
-        queryParams.push(`generalPreference=${encodeURIComponent(filterParams.generalPreference)}`);
-      if (filterParams.availability === 'available') queryParams.push('availability=true');
+      if (filterParams.region && filterParams.region.trim()) {
+        queryParams.push(`region=${encodeURIComponent(filterParams.region.trim())}`);
+      }
+      if (filterParams.generalPreference && filterParams.generalPreference.trim()) {
+        queryParams.push(`generalPreference=${encodeURIComponent(filterParams.generalPreference.trim())}`);
+      }
+      if (filterParams.availability === 'available') {
+        queryParams.push('availability=true');
+      }
+      if (filterParams.maxRent && filterParams.maxRent.toString().trim()) {
+        const maxRent = parseFloat(filterParams.maxRent);
+        if (!isNaN(maxRent) && maxRent > 0) {
+          queryParams.push(`maxRent=${maxRent}`);
+          console.log('Adding maxRent filter:', maxRent); // Debug log
+        }
+      }
 
       if (queryParams.length > 0) {
         url += '?' + queryParams.join('&');
       }
 
+      console.log('Fetching rooms with URL:', url); // Debug log
       const res = await api.get(url);
+      console.log('Response data:', res.data); // Debug log
       setRooms(Array.isArray(res.data) ? res.data : []);
     } catch (error) {
       console.error('Error fetching or searching rooms:', error);
@@ -340,7 +355,7 @@ function PGRooms() {
               <i className="fas fa-filter text-primary me-2"></i>Filter Options
             </h5>
             <form className="row g-3">
-        <div className="col-md-3">
+        <div className="col-md-2">
                 <label className="form-label fw-semibold" style={{ color: '#374151' }}>Region</label>
           <select
                   className="form-select border-0 shadow-sm rounded-3"
@@ -358,7 +373,7 @@ function PGRooms() {
           </select>
         </div>
 
-        <div className="col-md-3">
+        <div className="col-md-2">
                 <label className="form-label fw-semibold" style={{ color: '#374151' }}>Preference</label>
           <select
                   className="form-select border-0 shadow-sm rounded-3"
@@ -376,7 +391,7 @@ function PGRooms() {
           </select>
         </div>
 
-        <div className="col-md-3">
+        <div className="col-md-2">
                 <label className="form-label fw-semibold" style={{ color: '#374151' }}>Availability</label>
           <select
                   className="form-select border-0 shadow-sm rounded-3"
@@ -390,7 +405,22 @@ function PGRooms() {
           </select>
         </div>
 
-              <div className="col-md-3 d-flex align-items-end">
+        <div className="col-md-2">
+                <label className="form-label fw-semibold" style={{ color: '#374151' }}>Max Rent (₹)</label>
+          <input
+                  type="number"
+                  className="form-control border-0 shadow-sm rounded-3"
+            name="maxRent"
+            value={filters.maxRent}
+            onChange={handleChange}
+            placeholder="Max rent"
+            min="0"
+            step="1000"
+            style={{ background: '#f8fafc' }}
+          />
+        </div>
+
+              <div className="col-md-2 d-flex align-items-end">
                 <button 
                   className="btn btn-primary w-100 rounded-3 shadow-sm" 
                   onClick={() => fetchRooms()}
