@@ -21,10 +21,11 @@ CREATE TABLE IF NOT EXISTS user_maid (
 
 
 -- Update feedback table to include maid_id and user_id
-ALTER TABLE feedback ADD COLUMN IF NOT EXISTS maid_id BIGINT;
-ALTER TABLE feedback ADD COLUMN IF NOT EXISTS user_id BIGINT;
-ALTER TABLE feedback ADD FOREIGN KEY IF NOT EXISTS (maid_id) REFERENCES maids(id);
-ALTER TABLE feedback ADD FOREIGN KEY IF NOT EXISTS (user_id) REFERENCES users(id); 
+-- Note: These columns may already exist, so we'll handle them gracefully
+-- ALTER TABLE feedback ADD COLUMN maid_id BIGINT;
+-- ALTER TABLE feedback ADD COLUMN user_id BIGINT;
+-- ALTER TABLE feedback ADD FOREIGN KEY (maid_id) REFERENCES maids(id);
+-- ALTER TABLE feedback ADD FOREIGN KEY (user_id) REFERENCES users(id); 
 
 -- Add new tables for tiffin functionality
 
@@ -67,4 +68,14 @@ CREATE INDEX IF NOT EXISTS idx_menus_is_active ON menus(is_active);
 CREATE INDEX IF NOT EXISTS idx_user_tiffins_user_id ON user_tiffins(user_id);
 CREATE INDEX IF NOT EXISTS idx_user_tiffins_tiffin_id ON user_tiffins(tiffin_id);
 CREATE INDEX IF NOT EXISTS idx_user_tiffins_status ON user_tiffins(status);
-CREATE INDEX IF NOT EXISTS idx_user_tiffins_assigned_date_time ON user_tiffins(assigned_date_time); 
+CREATE INDEX IF NOT EXISTS idx_user_tiffins_assigned_date_time ON user_tiffins(assigned_date_time);
+
+-- Create contactUs table if it doesn't exist
+CREATE TABLE IF NOT EXISTS contactUs (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    phone VARCHAR(20),
+    message TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+); 

@@ -23,6 +23,7 @@ public class DataInitializer implements CommandLineRunner {
         System.out.println("=== Starting Data Initialization ===");
         // Create default admin if not exists
         createDefaultAdmin();
+        // Remove sample contact messages creation
         System.out.println("=== Data Initialization Complete ===");
     }
 

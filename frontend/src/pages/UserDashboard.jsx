@@ -28,9 +28,8 @@ const DashboardHome = () => {
 
   const fetchDashboardData = async () => {
     try {
-      // Debug: Check if token exists
+      // Check if token exists
       const token = sessionStorage.getItem('token');
-      console.log('Token exists:', !!token);
       
       // Fetch user profile to get real name
       let userName = 'Guest';

@@ -19,11 +19,15 @@ function Admin() {
       api.get('/api/admin/tiffins/pending'),
       api.get('/api/contactUs/all')
     ])
-    .then(([maidRes, tiffinRes]) => {
+    .then(([maidRes, tiffinRes, contactRes]) => {
       setPendingMaid(maidRes.data || []);
       setPendingTiffin(tiffinRes.data || []);
+      setContactMessages(contactRes.data || []);
     })
-    .catch(() => setError('Failed to load service providers'))
+    .catch((error) => {
+      console.error('Error loading data:', error);
+      setError('Failed to load service providers');
+    })
     .finally(() => setLoading(false));
   }, []);
 
@@ -189,11 +193,11 @@ function Admin() {
             {showContactMessages ? 'Hide Messages' : 'Show Messages'}
           </button>
         </div>
-        {showContactMessages && (
-          <div className="card-body">
-            {contactMessages.length === 0 ? (
-              <p className="text-muted">No messages found.</p>
-            ) : (
+                 {showContactMessages && (
+           <div className="card-body">
+             {contactMessages.length === 0 ? (
+               <p className="text-muted">No messages found.</p>
+             ) : (
               <div className="table-responsive" style={{ maxHeight: '300px', overflowY: 'auto' }}>
                 <table className="table table-bordered table-sm">
                   <thead className="table-light">

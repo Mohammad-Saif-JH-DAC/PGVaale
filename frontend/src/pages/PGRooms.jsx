@@ -83,16 +83,13 @@ function PGRooms() {
   useEffect(() => {
     const checkAuth = () => {
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-      console.log('Checking auth - Token exists:', !!token);
       
       if (token) {
         try {
           const payload = JSON.parse(atob(token.split('.')[1]));
-          console.log('Token payload:', payload);
           
           // Check if token is expired
           if (payload.exp && payload.exp * 1000 < Date.now()) {
-            console.log('Token expired, clearing authentication');
             localStorage.removeItem('token');
             sessionStorage.removeItem('token');
             setIsAuthenticated(false);
@@ -107,7 +104,6 @@ function PGRooms() {
             role = payload.authorities[0].authority.replace('ROLE_', '').toLowerCase();
           }
           
-          console.log('User role:', role);
           setUserRole(role);
           setIsAuthenticated(true);
         } catch (error) {
@@ -140,7 +136,6 @@ function PGRooms() {
 
   // Handle opening room details modal
   const handleViewDetails = (room) => {
-    console.log('Selected Room:', room);
     setSelectedRoom(room);
     setShowModal(true);
   };
@@ -193,8 +188,6 @@ function PGRooms() {
     }
     
     const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-    console.log('Token exists:', !!token);
-    console.log('Token value:', token ? token.substring(0, 20) + '...' : 'No token');
     
     if (!token) {
       Toast.warn('Please login to send interest.');
@@ -204,7 +197,6 @@ function PGRooms() {
     // Validate token format and expiration
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
-      console.log('Token payload:', payload);
       
       // Check if token is expired
       if (payload.exp && payload.exp * 1000 < Date.now()) {
@@ -229,15 +221,12 @@ function PGRooms() {
 
     try {
       // Backend will automatically set username from authenticated user
-      console.log('Making API call to:', `/api/pg/${roomId}/book`);
       const response = await api.post(`/api/pg/${roomId}/book`);
-      console.log('API response:', response);
       setBookingStatus((prev) => ({ ...prev, [roomId]: 'booked' }));
       Toast.success('PG booked successfully!');
       downloadPdf(roomId);
     } catch (error) {
       console.error('Booking failed:', error);
-      console.error('Error response:', error.response);
       
       let errorMessage = 'Booking failed! Please try again.';
       
@@ -440,29 +429,7 @@ function PGRooms() {
           <p className="lead text-muted mb-4">
             Discover comfortable accommodations with modern amenities and great locations
           </p>
-          {/* Debug info - remove in production */}
-          <div className="text-muted small">
-            Auth Status: {isAuthenticated ? 'Logged In' : 'Not Logged In'} | 
-            Role: {userRole || 'None'} | 
-            Token: {localStorage.getItem('token') || sessionStorage.getItem('token') ? 'Exists' : 'Missing'}
-            {isAuthenticated && (
-              <button 
-                className="btn btn-sm btn-outline-info ms-2"
-                onClick={async () => {
-                  try {
-                    const response = await api.get('/api/pg/test-auth');
-                    console.log('Test auth response:', response.data);
-                    Toast.success('Auth test successful!');
-                  } catch (error) {
-                    console.error('Auth test failed:', error);
-                    Toast.error('Auth test failed: ' + (error.response?.data || error.message));
-                  }
-                }}
-              >
-                Test Auth
-              </button>
-            )}
-          </div>
+
         </div>
 
 {/* Info Alert for Guests */}

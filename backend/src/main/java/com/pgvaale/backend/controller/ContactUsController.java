@@ -27,9 +27,14 @@ public class ContactUsController {
     @GetMapping("/contactUs/all")
 public ResponseEntity<?> getAllContactMessages() {
     try {
+        System.out.println("=== Getting all contact messages ===");
         List<ContactUs> messages = contactUsRepository.findAll();
+        System.out.println("Found " + messages.size() + " contact messages");
+        System.out.println("Messages: " + messages);
         return ResponseEntity.ok(messages);
     } catch (Exception e) {
+        System.err.println("Error fetching contact messages: " + e.getMessage());
+        e.printStackTrace();
         return ResponseEntity.status(500).body("Error fetching messages: " + e.getMessage());
     }
 }
