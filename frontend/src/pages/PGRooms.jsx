@@ -32,6 +32,8 @@ function PGRooms() {
   const [bookingStatus, setBookingStatus] = useState({});
   const [showModal, setShowModal] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userRole, setUserRole] = useState('');
 
   // Fetch rooms (with or without filters)
   const fetchRooms = async (filterParams = filters) => {
@@ -75,6 +77,56 @@ function PGRooms() {
   // Load all rooms on mount
   useEffect(() => {
     fetchRooms();
+  }, []);
+
+  // Check authentication status on mount and periodically
+  useEffect(() => {
+    const checkAuth = () => {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      console.log('Checking auth - Token exists:', !!token);
+      
+      if (token) {
+        try {
+          const payload = JSON.parse(atob(token.split('.')[1]));
+          console.log('Token payload:', payload);
+          
+          // Check if token is expired
+          if (payload.exp && payload.exp * 1000 < Date.now()) {
+            console.log('Token expired, clearing authentication');
+            localStorage.removeItem('token');
+            sessionStorage.removeItem('token');
+            setIsAuthenticated(false);
+            setUserRole('');
+            return;
+          }
+          
+          let role = '';
+          if (payload.role) {
+            role = payload.role.replace('ROLE_', '').toLowerCase();
+          } else if (payload.authorities && payload.authorities.length > 0) {
+            role = payload.authorities[0].authority.replace('ROLE_', '').toLowerCase();
+          }
+          
+          console.log('User role:', role);
+          setUserRole(role);
+          setIsAuthenticated(true);
+        } catch (error) {
+          console.error('Error parsing token:', error);
+          setIsAuthenticated(false);
+          setUserRole('');
+        }
+      } else {
+        setIsAuthenticated(false);
+        setUserRole('');
+      }
+    };
+    
+    checkAuth();
+    
+    // Check authentication every 30 seconds
+    const interval = setInterval(checkAuth, 30000);
+    
+    return () => clearInterval(interval);
   }, []);
 
   // Handle filter input change and auto-search
@@ -135,10 +187,41 @@ function PGRooms() {
 
   // Handle booking room
   const handleBookRoom = async (roomId) => {
+    if (!isAuthenticated || userRole !== 'user') {
+      Toast.warn('Please login as a user to book PG rooms.');
+      return;
+    }
+    
     const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+    console.log('Token exists:', !!token);
+    console.log('Token value:', token ? token.substring(0, 20) + '...' : 'No token');
+    
     if (!token) {
-      //alert('Please log in to book PG.');
       Toast.warn('Please login to send interest.');
+      return;
+    }
+
+    // Validate token format and expiration
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      console.log('Token payload:', payload);
+      
+      // Check if token is expired
+      if (payload.exp && payload.exp * 1000 < Date.now()) {
+        Toast.error('Your session has expired. Please login again.');
+        localStorage.removeItem('token');
+        sessionStorage.removeItem('token');
+        setIsAuthenticated(false);
+        setUserRole('');
+        return;
+      }
+    } catch (error) {
+      console.error('Error validating token:', error);
+      Toast.error('Invalid token. Please login again.');
+      localStorage.removeItem('token');
+      sessionStorage.removeItem('token');
+      setIsAuthenticated(false);
+      setUserRole('');
       return;
     }
 
@@ -146,16 +229,41 @@ function PGRooms() {
 
     try {
       // Backend will automatically set username from authenticated user
-      await api.post('/api/room-interests', { roomId, message: 'Interested in this PG room' });
+      console.log('Making API call to:', `/api/pg/${roomId}/book`);
+      const response = await api.post(`/api/pg/${roomId}/book`);
+      console.log('API response:', response);
       setBookingStatus((prev) => ({ ...prev, [roomId]: 'booked' }));
       Toast.success('PG booked successfully!');
       downloadPdf(roomId);
     } catch (error) {
       console.error('Booking failed:', error);
-      const errorMessage = error.response?.data || 'Booking failed! Please Login to continue.';
-      // alert(errorMessage);
+      console.error('Error response:', error.response);
+      
+      let errorMessage = 'Booking failed! Please try again.';
+      
+      if (error.response) {
+        if (error.response.status === 401) {
+          errorMessage = 'Authentication failed. Please login again.';
+          // Clear invalid tokens
+          localStorage.removeItem('token');
+          sessionStorage.removeItem('token');
+          setIsAuthenticated(false);
+          setUserRole('');
+        } else if (error.response.status === 403) {
+          errorMessage = 'Access denied. You do not have permission to book this PG.';
+        } else if (error.response.status === 404) {
+          errorMessage = 'PG room not found.';
+        } else if (error.response.status >= 500) {
+          errorMessage = 'Server error. Please try again later.';
+        } else if (error.response.data) {
+          errorMessage = error.response.data;
+        }
+      } else if (error.request) {
+        errorMessage = 'Network error. Please check your connection.';
+      }
+      
       Toast.error(errorMessage);
-      setBookingStatus((prev) => ({ ...prev, [roomId]: 'failed' }));
+      setBookingStatus((prev) => ({ ...prev, [roomId]: 'error' }));
     }
 
     // Reset status after 3 seconds
@@ -324,7 +432,7 @@ function PGRooms() {
       paddingBottom: '2rem'
     }}>
       <div className="container">
-        {/* Header Section */}
+                {/* Header Section */}
         <div className="text-center mb-5">
           <h1 className="display-5 fw-bold mb-3" style={{ color: '#2C3E50' }}>
             Find Your Perfect <span className="text-primary">PG Room</span>
@@ -332,7 +440,30 @@ function PGRooms() {
           <p className="lead text-muted mb-4">
             Discover comfortable accommodations with modern amenities and great locations
           </p>
-      </div>
+          {/* Debug info - remove in production */}
+          <div className="text-muted small">
+            Auth Status: {isAuthenticated ? 'Logged In' : 'Not Logged In'} | 
+            Role: {userRole || 'None'} | 
+            Token: {localStorage.getItem('token') || sessionStorage.getItem('token') ? 'Exists' : 'Missing'}
+            {isAuthenticated && (
+              <button 
+                className="btn btn-sm btn-outline-info ms-2"
+                onClick={async () => {
+                  try {
+                    const response = await api.get('/api/pg/test-auth');
+                    console.log('Test auth response:', response.data);
+                    Toast.success('Auth test successful!');
+                  } catch (error) {
+                    console.error('Auth test failed:', error);
+                    Toast.error('Auth test failed: ' + (error.response?.data || error.message));
+                  }
+                }}
+              >
+                Test Auth
+              </button>
+            )}
+          </div>
+        </div>
 
 {/* Info Alert for Guests */}
 {!sessionStorage.getItem('token') && (
@@ -510,7 +641,7 @@ function PGRooms() {
                     >
                         <i className="fas fa-eye me-2"></i>View Details
                     </button>
-                    {localStorage.getItem('token') || sessionStorage.getItem('token') ? (
+                    {isAuthenticated && userRole === 'user' ? (
                       <button
                           className={`btn flex-grow-1 rounded-3 ${
                           bookingStatus[room.id] === 'booking'

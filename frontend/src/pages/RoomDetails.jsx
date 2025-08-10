@@ -29,11 +29,7 @@ function RoomDetails() {
     e.preventDefault();
     setSuccess('');
     try {
-      await api.post('/api/room-interests', {
-        roomId: room.id,
-        username,
-        message: interestMsg
-      });
+      await api.post(`/api/pg/${room.id}/book`);
       setSuccess('Interest/request sent!');
       Toast.success('Interest/request sent!');
       setInterestMsg('');

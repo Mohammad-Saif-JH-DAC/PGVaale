@@ -243,6 +243,7 @@ public class PGController {
     
     // Book/Express Interest in PG
     @PostMapping("/{pgId}/book")
+    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<?> bookPG(@PathVariable Long pgId) {
         try {
             
@@ -250,6 +251,12 @@ public class PGController {
             org.springframework.security.core.Authentication auth = 
                 org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
             String username = auth.getName();
+            
+            System.out.println("PG Booking - Authentication: " + auth);
+            System.out.println("PG Booking - Username: " + username);
+            System.out.println("PG Booking - Authorities: " + auth.getAuthorities());
+            System.out.println("PG Booking - Is Authenticated: " + auth.isAuthenticated());
+            System.out.println("PG Booking - Principal: " + auth.getPrincipal());
             
             // Find the PG
             Optional<PG> pgOptional = pgRepository.findById(pgId);
@@ -292,6 +299,25 @@ public class PGController {
         }
     }
     
+    // Test endpoint to verify authentication
+    @GetMapping("/test-auth")
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<?> testAuth() {
+        try {
+            org.springframework.security.core.Authentication auth = 
+                org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+            
+            return ResponseEntity.ok(Map.of(
+                "message", "Authentication successful",
+                "username", auth.getName(),
+                "authorities", auth.getAuthorities().stream().map(Object::toString).collect(Collectors.toList()),
+                "isAuthenticated", auth.isAuthenticated()
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("error", e.getMessage()));
+        }
+    }
+
     // Get PGs booked by the authenticated user
     @GetMapping("/user/booked")
     @PreAuthorize("hasRole('USER')")

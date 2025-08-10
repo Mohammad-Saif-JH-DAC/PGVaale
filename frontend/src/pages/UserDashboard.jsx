@@ -834,6 +834,135 @@ const MaidServices = () => {
 };
 
 const MyBookings = () => {
+  const [bookings, setBookings] = useState({
+    maidRequests: [],
+    tiffinRequests: [],
+    pgInterests: []
+  });
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('all');
+
+  useEffect(() => {
+    fetchBookings();
+  }, []);
+
+  const fetchBookings = async () => {
+    try {
+      setLoading(true);
+      const response = await api.get('/api/user/bookings');
+      setBookings(response.data);
+    } catch (error) {
+      console.error('Error fetching bookings:', error);
+      Toast.error('Error loading bookings: ' + (error.response?.data || error.message));
+      if (error.response?.status === 401) {
+        sessionStorage.removeItem('token');
+        window.location.href = '/login';
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getStatusBadgeClass = (status) => {
+    switch (status) {
+      case 'PENDING':
+      case 'REQUESTED':
+        return 'bg-warning';
+      case 'ACCEPTED':
+        return 'bg-success';
+      case 'REJECTED':
+        return 'bg-danger';
+      case 'CANCELLED':
+        return 'bg-secondary';
+      case 'COMPLETED':
+        return 'bg-primary';
+      default:
+        return 'bg-secondary';
+    }
+  };
+
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case 'PENDING':
+      case 'REQUESTED':
+        return '⏳';
+      case 'ACCEPTED':
+        return '✅';
+      case 'REJECTED':
+        return '❌';
+      case 'CANCELLED':
+        return '🚫';
+      case 'COMPLETED':
+        return '🎉';
+      default:
+        return '❓';
+    }
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString('en-IN', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const handleCancelRequest = async (requestId, type) => {
+    try {
+      if (type === 'maid') {
+        await api.delete(`/api/user/maid-requests/${requestId}`);
+      } else if (type === 'tiffin') {
+        await api.delete(`/api/user/requests/${requestId}`);
+      }
+      Toast.success('Request cancelled successfully!');
+      fetchBookings(); // Refresh the list
+    } catch (error) {
+      console.error('Error cancelling request:', error);
+      Toast.error('Failed to cancel request. Please try again.');
+    }
+  };
+
+  const getFilteredBookings = () => {
+    switch (activeTab) {
+      case 'maid':
+        return { ...bookings, tiffinRequests: [], pgInterests: [] };
+      case 'tiffin':
+        return { ...bookings, maidRequests: [], pgInterests: [] };
+      case 'pg':
+        return { ...bookings, maidRequests: [], tiffinRequests: [] };
+      default:
+        return bookings;
+    }
+  };
+
+  const filteredBookings = getFilteredBookings();
+  const totalBookings = (filteredBookings.maidRequests?.length || 0) + 
+                       (filteredBookings.tiffinRequests?.length || 0) + 
+                       (filteredBookings.pgInterests?.length || 0);
+
+  if (loading) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, #f8fafc 0%, #e0e7ff 100%)',
+        paddingTop: '2rem',
+        paddingBottom: '2rem'
+      }}>
+        <div className="container">
+          <div className="text-center">
+            <div className="spinner-border text-primary" role="status">
+              <span className="visually-hidden">Loading...</span>
+            </div>
+            <p className="mt-3 text-muted">Loading your bookings...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{
       minHeight: '100vh',
@@ -842,15 +971,295 @@ const MyBookings = () => {
       paddingBottom: '2rem'
     }}>
       <div className="container">
-        <div className="row">
-          <div className="col-12">
-            <h2 className="text-center mb-4">My Bookings</h2>
-            <div className="alert alert-info">
-              <i className="fas fa-info-circle me-2"></i>
-              My bookings feature is coming soon!
+        {/* Header Section */}
+        <div className="text-center mb-5">
+          <h1 className="display-5 fw-bold mb-3" style={{ color: '#2C3E50' }}>
+            <i className="fas fa-clipboard-list text-primary me-3"></i>
+            My Bookings
+          </h1>
+          <p className="lead text-muted mb-4">
+            Track all your service requests and bookings in one place
+          </p>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="row mb-4">
+          <div className="col-md-3 mb-3">
+            <div className="card border-0 shadow-sm rounded-4 text-center">
+              <div className="card-body">
+                <div className="text-primary mb-2">
+                  <i className="fas fa-clipboard-list" style={{ fontSize: '2rem' }}></i>
+                </div>
+                <h4 className="fw-bold mb-1">{totalBookings}</h4>
+                <p className="text-muted mb-0 small">Total Bookings</p>
+              </div>
+            </div>
+          </div>
+          <div className="col-md-3 mb-3">
+            <div className="card border-0 shadow-sm rounded-4 text-center">
+              <div className="card-body">
+                <div className="text-warning mb-2">
+                  <i className="fas fa-user-tie" style={{ fontSize: '2rem' }}></i>
+                </div>
+                <h4 className="fw-bold mb-1">{bookings.maidRequests?.length || 0}</h4>
+                <p className="text-muted mb-0 small">Maid Requests</p>
+              </div>
+            </div>
+          </div>
+          <div className="col-md-3 mb-3">
+            <div className="card border-0 shadow-sm rounded-4 text-center">
+              <div className="card-body">
+                <div className="text-success mb-2">
+                  <i className="fas fa-utensils" style={{ fontSize: '2rem' }}></i>
+                </div>
+                <h4 className="fw-bold mb-1">{bookings.tiffinRequests?.length || 0}</h4>
+                <p className="text-muted mb-0 small">Tiffin Requests</p>
+              </div>
+            </div>
+          </div>
+          <div className="col-md-3 mb-3">
+            <div className="card border-0 shadow-sm rounded-4 text-center">
+              <div className="card-body">
+                <div className="text-info mb-2">
+                  <i className="fas fa-home" style={{ fontSize: '2rem' }}></i>
+                </div>
+                <h4 className="fw-bold mb-1">{bookings.pgInterests?.length || 0}</h4>
+                <p className="text-muted mb-0 small">PG Interests</p>
+              </div>
             </div>
           </div>
         </div>
+
+        {/* Filter Tabs */}
+        <div className="row mb-4">
+          <div className="col-12">
+            <div className="card border-0 shadow-sm rounded-4">
+              <div className="card-body p-3">
+                <div className="d-flex flex-wrap gap-2">
+                  <button
+                    className={`btn ${activeTab === 'all' ? 'btn-primary' : 'btn-outline-primary'} rounded-3`}
+                    onClick={() => setActiveTab('all')}
+                  >
+                    <i className="fas fa-list me-2"></i>All Bookings
+                  </button>
+                  <button
+                    className={`btn ${activeTab === 'maid' ? 'btn-warning' : 'btn-outline-warning'} rounded-3`}
+                    onClick={() => setActiveTab('maid')}
+                  >
+                    <i className="fas fa-user-tie me-2"></i>Maid Services
+                  </button>
+                  <button
+                    className={`btn ${activeTab === 'tiffin' ? 'btn-success' : 'btn-outline-success'} rounded-3`}
+                    onClick={() => setActiveTab('tiffin')}
+                  >
+                    <i className="fas fa-utensils me-2"></i>Tiffin Services
+                  </button>
+                  <button
+                    className={`btn ${activeTab === 'pg' ? 'btn-info' : 'btn-outline-info'} rounded-3`}
+                    onClick={() => setActiveTab('pg')}
+                  >
+                    <i className="fas fa-home me-2"></i>PG Rooms
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Bookings Content */}
+        {totalBookings === 0 ? (
+          <div className="text-center py-5">
+            <div className="card shadow border-0 rounded-4 p-5">
+              <div className="mb-4">
+                <i className="fas fa-clipboard-list text-muted" style={{ fontSize: '4rem' }}></i>
+              </div>
+              <h3 className="text-muted mb-3">No Bookings Yet</h3>
+              <p className="text-muted mb-4">
+                You haven't made any service requests yet. Start exploring our services!
+              </p>
+              <div className="d-flex gap-3 justify-content-center">
+                <a href="/maid-hiring" className="btn btn-warning rounded-3">
+                  <i className="fas fa-user-tie me-2"></i>Hire Maid
+                </a>
+                <a href="/user-dashboard/tiffins" className="btn btn-success rounded-3">
+                  <i className="fas fa-utensils me-2"></i>Order Tiffin
+                </a>
+                <a href="/pgrooms" className="btn btn-primary rounded-3">
+                  <i className="fas fa-home me-2"></i>Browse PGs
+                </a>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="row g-4">
+            {/* Maid Requests */}
+            {filteredBookings.maidRequests && filteredBookings.maidRequests.length > 0 && (
+              <div className="col-12">
+                <div className="card border-0 shadow-sm rounded-4">
+                  <div className="card-header bg-warning bg-opacity-10 border-0">
+                    <h5 className="mb-0 fw-bold text-warning">
+                      <i className="fas fa-user-tie me-2"></i>Maid Service Requests
+                    </h5>
+                  </div>
+                  <div className="card-body">
+                    <div className="table-responsive">
+                      <table className="table table-hover">
+                        <thead>
+                          <tr>
+                            <th>Maid Name</th>
+                            <th>Request Date</th>
+                            <th>Service Period</th>
+                            <th>Address</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredBookings.maidRequests.map((request) => (
+                            <tr key={request.id}>
+                              <td>
+                                <div className="d-flex align-items-center">
+                                  <div>
+                                    <div className="fw-semibold">{request.maid?.name || 'N/A'}</div>
+                                    <small className="text-muted">{request.maid?.mobileNumber || 'N/A'}</small>
+                                  </div>
+                                </div>
+                              </td>
+                              <td>{formatDate(request.assignedDateTime)}</td>
+                              <td>
+                                {request.startDate && request.endDate ? (
+                                  <div>
+                                    <div><strong>From:</strong> {new Date(request.startDate).toLocaleDateString()}</div>
+                                    <div><strong>To:</strong> {new Date(request.endDate).toLocaleDateString()}</div>
+                                    {request.timeSlot && <div><strong>Time:</strong> {request.timeSlot}</div>}
+                                  </div>
+                                ) : (
+                                  'N/A'
+                                )}
+                              </td>
+                              <td>
+                                <small className="text-muted">
+                                  {request.userAddress || 'No address provided'}
+                                </small>
+                              </td>
+                              <td>
+                                <span className={`badge ${getStatusBadgeClass(request.status)}`}>
+                                  {getStatusIcon(request.status)} {request.status}
+                                </span>
+                              </td>
+                              <td>
+                                {request.status === 'PENDING' && (
+                                  <button
+                                    className="btn btn-sm btn-outline-danger"
+                                    onClick={() => handleCancelRequest(request.id, 'maid')}
+                                    title="Cancel Request"
+                                  >
+                                    <i className="fas fa-times"></i>
+                                  </button>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Tiffin Requests */}
+            {filteredBookings.tiffinRequests && filteredBookings.tiffinRequests.length > 0 && (
+              <div className="col-12">
+                <div className="card border-0 shadow-sm rounded-4">
+                  <div className="card-header bg-success bg-opacity-10 border-0">
+                    <h5 className="mb-0 fw-bold text-success">
+                      <i className="fas fa-utensils me-2"></i>Tiffin Service Requests
+                    </h5>
+                  </div>
+                  <div className="card-body">
+                    <div className="table-responsive">
+                      <table className="table table-hover">
+                        <thead>
+                          <tr>
+                            <th>Provider Name</th>
+                            <th>Request Date</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredBookings.tiffinRequests.map((request) => (
+                            <tr key={request.id}>
+                              <td>
+                                <div className="d-flex align-items-center">
+                                  <div>
+                                    <div className="fw-semibold">{request.tiffinName || 'N/A'}</div>
+                                    <small className="text-muted">{request.tiffin?.region || 'N/A'}</small>
+                                  </div>
+                                </div>
+                              </td>
+                              <td>{formatDate(request.assignedDateTime)}</td>
+                              <td>
+                                <span className={`badge ${getStatusBadgeClass(request.status)}`}>
+                                  {getStatusIcon(request.status)} {request.status}
+                                </span>
+                              </td>
+                              <td>
+                                {request.status === 'PENDING' && (
+                                  <button
+                                    className="btn btn-sm btn-outline-danger"
+                                    onClick={() => handleCancelRequest(request.id, 'tiffin')}
+                                    title="Cancel Request"
+                                  >
+                                    <i className="fas fa-times"></i>
+                                  </button>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* PG Interests */}
+            {filteredBookings.pgInterests && filteredBookings.pgInterests.length > 0 && (
+              <div className="col-12">
+                <div className="card border-0 shadow-sm rounded-4">
+                  <div className="card-header bg-info bg-opacity-10 border-0">
+                    <h5 className="mb-0 fw-bold text-info">
+                      <i className="fas fa-home me-2"></i>PG Room Interests
+                    </h5>
+                  </div>
+                  <div className="card-body">
+                    <div className="alert alert-info">
+                      <i className="fas fa-info-circle me-2"></i>
+                      PG room interests feature is coming soon! You can currently view your booked PGs in the PG Interests section.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Refresh Button */}
+        {totalBookings > 0 && (
+          <div className="text-center mt-4">
+            <button
+              className="btn btn-outline-primary rounded-3"
+              onClick={fetchBookings}
+              disabled={loading}
+            >
+              <i className="fas fa-sync-alt me-2"></i>
+              {loading ? 'Refreshing...' : 'Refresh Bookings'}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

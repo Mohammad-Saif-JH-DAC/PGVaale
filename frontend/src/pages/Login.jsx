@@ -89,14 +89,19 @@ function Login() {
       }
 
       if (token && successfulRole) {
+        // Store in both localStorage and sessionStorage for consistency
+        localStorage.setItem('token', token);
         sessionStorage.setItem('token', token);
+        localStorage.setItem('userRole', successfulRole);
         sessionStorage.setItem('userRole', successfulRole);
 
         // Toast on success
         toast.success('Login successful!');
 
         setTimeout(() => {
+          localStorage.removeItem('token');
           sessionStorage.removeItem('token');
+          localStorage.removeItem('userRole');
           sessionStorage.removeItem('userRole');
           console.log('Token cleared after 1 hour');
         }, 60 * 60 * 1000);

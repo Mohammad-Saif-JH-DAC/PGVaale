@@ -97,6 +97,20 @@ public class JwtRequestFilter extends OncePerRequestFilter {
             System.out.println("User already authenticated: " + username);
         }
 
+        // Debug: Print current authentication context
+        System.out.println("Current Security Context: " + SecurityContextHolder.getContext().getAuthentication());
+        if (SecurityContextHolder.getContext().getAuthentication() != null) {
+            System.out.println("Current Authorities: " + SecurityContextHolder.getContext().getAuthentication().getAuthorities());
+            System.out.println("Current Principal: " + SecurityContextHolder.getContext().getAuthentication().getPrincipal());
+            System.out.println("Current Name: " + SecurityContextHolder.getContext().getAuthentication().getName());
+            System.out.println("Current Details: " + SecurityContextHolder.getContext().getAuthentication().getDetails());
+        }
+        
+        // Debug: Print request details
+        System.out.println("Request URI: " + request.getRequestURI());
+        System.out.println("Request Method: " + request.getMethod());
+        System.out.println("Authorization Header: " + request.getHeader("Authorization"));
+
         chain.doFilter(request, response);
     }
 

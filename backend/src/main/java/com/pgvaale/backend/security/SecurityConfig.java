@@ -94,8 +94,7 @@ public class SecurityConfig {
                                 "/api/pdf/**",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
-                                "/api/contactUs/**",
-                                "/api/**")
+                                "/api/contactUs/**")
                         .permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
                         // Role-based endpoints
@@ -106,6 +105,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/tiffin/book/**").hasAnyAuthority("ROLE_USER", "ROLE_ADMIN") // Allow users to book tiffin services
                         .requestMatchers("/api/tiffin/**").hasAuthority("ROLE_TIFFIN")
                         .requestMatchers("/api/contactUs/all").hasAuthority("ROLE_ADMIN")
+                        .requestMatchers("/api/pg/**").hasAnyAuthority("ROLE_OWNER", "ROLE_USER", "ROLE_ADMIN") // Allow access to PG endpoints
                         .requestMatchers("/api/pgs/**").hasAnyAuthority("ROLE_OWNER", "ROLE_USER", "ROLE_ADMIN") // pg->pgs
                         .anyRequest().authenticated())
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
