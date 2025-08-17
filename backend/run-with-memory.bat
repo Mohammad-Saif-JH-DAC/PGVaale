@@ -2,7 +2,7 @@
 echo Starting PGVaale Backend with optimized memory settings...
 echo.
 
-set JAVA_OPTS=-Xmx512m -Xms256m -XX:+UseG1GC -XX:MaxGCPauseMillis=200
+set JAVA_OPTS=-Xmx384m -Xms128m -XX:+UseG1GC -XX:MaxGCPauseMillis=200
 
 echo Using JVM options: %JAVA_OPTS%
 echo.

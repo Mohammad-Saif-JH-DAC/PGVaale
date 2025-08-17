@@ -101,12 +101,13 @@ public class SecurityConfig {
                         .requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
                         .requestMatchers("/api/owner/**").hasAuthority("ROLE_OWNER")
                         .requestMatchers("/api/user/**").hasAnyAuthority("ROLE_USER", "ROLE_ADMIN")
-                        .requestMatchers("/api/maid/**").hasAuthority("ROLE_MAID")
+                        .requestMatchers("/api/maid/**").hasAnyAuthority("ROLE_MAID","ROLE_USER")
                         .requestMatchers("/api/tiffin/book/**").hasAnyAuthority("ROLE_USER", "ROLE_ADMIN") // Allow users to book tiffin services
-                        .requestMatchers("/api/tiffin/**").hasAuthority("ROLE_TIFFIN")
+                        .requestMatchers("/api/tiffin/**").hasAnyAuthority("ROLE_TIFFIN","ROLE_USER")
                         .requestMatchers("/api/contactUs/all").hasAuthority("ROLE_ADMIN")
                         .requestMatchers("/api/pg/**").hasAnyAuthority("ROLE_OWNER", "ROLE_USER", "ROLE_ADMIN") // Allow access to PG endpoints
                         .requestMatchers("/api/pgs/**").hasAnyAuthority("ROLE_OWNER", "ROLE_USER", "ROLE_ADMIN") // pg->pgs
+                        .requestMatchers("/api/user-maid/**").hasAnyAuthority("ROLE_USER", "ROLE_ADMIN") // Allow users to hire maids
                         .anyRequest().authenticated())
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
