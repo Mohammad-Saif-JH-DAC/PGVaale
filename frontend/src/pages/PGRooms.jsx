@@ -5,6 +5,7 @@ import 'leaflet/dist/leaflet.css';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import RoomDetailsModal from '../components/RoomDetailsModal';
+import PaymentModal from '../components/PaymentModal';
 import Toast from '../utils/Toast';
 
 
@@ -34,6 +35,8 @@ function PGRooms() {
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userRole, setUserRole] = useState('');
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedPGForPayment, setSelectedPGForPayment] = useState(null);
 
   // Fetch rooms (with or without filters)
   const fetchRooms = async (filterParams = filters) => {
@@ -220,11 +223,23 @@ function PGRooms() {
     setBookingStatus((prev) => ({ ...prev, [roomId]: 'booking' }));
 
     try {
-      // Backend will automatically set username from authenticated user
+      // Check if PG requires payment
       const response = await api.post(`/api/pg/${roomId}/book`);
-      setBookingStatus((prev) => ({ ...prev, [roomId]: 'booked' }));
-      Toast.success('PG booked successfully!');
-      downloadPdf(roomId);
+      
+      if (response.data.requiresPayment) {
+        // Show payment modal
+        setSelectedPGForPayment(response.data.pgDetails);
+        setShowPaymentModal(true);
+        setBookingStatus((prev) => ({ ...prev, [roomId]: 'pending' }));
+        
+        // Show info about dynamic pricing
+        Toast.info(`PG booking fee: ₹${response.data.paymentAmount} (one month's rent)`);
+      } else {
+        // Direct booking (fallback)
+        setBookingStatus((prev) => ({ ...prev, [roomId]: 'booked' }));
+        Toast.success('PG booked successfully!');
+        downloadPdf(roomId);
+      }
     } catch (error) {
       console.error('Booking failed:', error);
       
@@ -247,18 +262,31 @@ function PGRooms() {
         } else if (error.response.data) {
           errorMessage = error.response.data;
         }
-      } else if (error.request) {
-        errorMessage = 'Network error. Please check your connection.';
       }
       
       Toast.error(errorMessage);
       setBookingStatus((prev) => ({ ...prev, [roomId]: 'error' }));
     }
+  };
 
-    // Reset status after 3 seconds
-    setTimeout(() => {
-      setBookingStatus((prev) => ({ ...prev, [roomId]: null }));
-    }, 5000);
+  // Handle payment success
+  const handlePaymentSuccess = (roomId) => {
+    setBookingStatus((prev) => ({ ...prev, [roomId]: 'booked' }));
+    Toast.success('Payment successful! PG has been booked.');
+    downloadPdf(roomId);
+    
+    // Refresh the rooms list to update availability
+    fetchRooms();
+  };
+
+  // Close payment modal
+  const handleClosePaymentModal = () => {
+    setShowPaymentModal(false);
+    setSelectedPGForPayment(null);
+    // Reset booking status for the room
+    if (selectedPGForPayment) {
+      setBookingStatus((prev) => ({ ...prev, [selectedPGForPayment.id]: null }));
+    }
   };
 
   // Image Gallery with Auto-Slideshow
@@ -634,6 +662,10 @@ function PGRooms() {
                             <>
                               <i className="fas fa-check me-2"></i>Sent!
                             </>
+                          ) : bookingStatus[room.id] === 'pending' ? (
+                            <>
+                              <i className="fas fa-credit-card me-2"></i>Payment Pending
+                            </>
                           ) : bookingStatus[room.id] === 'error' ? (
                             <>
                               <i className="fas fa-times me-2"></i>Failed
@@ -684,6 +716,14 @@ function PGRooms() {
         show={showModal}
         onClose={handleCloseModal}
         room={selectedRoom}
+      />
+      
+      {/* Payment Modal */}
+      <PaymentModal
+        show={showPaymentModal}
+        onClose={handleClosePaymentModal}
+        pgDetails={selectedPGForPayment}
+        onPaymentSuccess={() => handlePaymentSuccess(selectedPGForPayment?.id)}
       />
       </div>
     </div>

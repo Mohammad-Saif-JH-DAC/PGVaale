@@ -2,12 +2,15 @@ import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import api from '../api';
 import MapComponent from '../pages/MapComponent';
+import PaymentModal from './PaymentModal';
 import 'leaflet/dist/leaflet.css';
 
 function RoomDetailsModal({ show, onClose, room }) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [interestMsg, setInterestMsg] = useState('');
   const [interestSuccess, setInterestSuccess] = useState('');
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [pgDetailsForPayment, setPgDetailsForPayment] = useState(null);
 
   // Check if user is authenticated for interest functionality
   const token = sessionStorage.getItem('token');
@@ -25,19 +28,50 @@ function RoomDetailsModal({ show, onClose, room }) {
     e.preventDefault();
     setInterestSuccess('');
     try {
-      await api.post(`/api/pg/${room.id}/book`);
-      setInterestSuccess('PG booked successfully! This room is now reserved for you.');
-      setInterestMsg('');
+      const response = await api.post(`/api/pg/${room.id}/book`);
       
-      // Close modal after successful booking
-      setTimeout(() => {
-        onClose();
-      }, 2000);
+      if (response.data.requiresPayment) {
+        // Show payment modal
+        setPgDetailsForPayment(response.data.pgDetails);
+        setShowPaymentModal(true);
+        setInterestSuccess(`Please complete the payment to book this PG. Booking fee: ₹${response.data.paymentAmount} (one month's rent)`);
+      } else {
+        // Direct booking (fallback)
+        setInterestSuccess('PG booked successfully! This room is now reserved for you.');
+        setInterestMsg('');
+        
+        // Close modal after successful booking
+        setTimeout(() => {
+          onClose();
+        }, 2000);
+      }
     } catch (error) {
       console.error('Error booking PG:', error);
       const errorMessage = error.response?.data || 'Failed to book PG. Please try again.';
       setInterestSuccess(errorMessage);
     }
+  };
+
+  // Handle payment success
+  const handlePaymentSuccess = () => {
+    setInterestSuccess('Payment successful! PG has been booked.');
+    setInterestMsg('');
+    
+    // Close payment modal
+    setShowPaymentModal(false);
+    setPgDetailsForPayment(null);
+    
+    // Close main modal after successful payment
+    setTimeout(() => {
+      onClose();
+    }, 2000);
+  };
+
+  // Close payment modal
+  const handleClosePaymentModal = () => {
+    setShowPaymentModal(false);
+    setPgDetailsForPayment(null);
+    setInterestSuccess('');
   };
 
   // Handle image navigation
@@ -284,6 +318,14 @@ function RoomDetailsModal({ show, onClose, room }) {
           </div>
         </div>
       </div>
+      
+      {/* Payment Modal */}
+      <PaymentModal
+        show={showPaymentModal}
+        onClose={handleClosePaymentModal}
+        pgDetails={pgDetailsForPayment}
+        onPaymentSuccess={handlePaymentSuccess}
+      />
     </div>
   );
 }

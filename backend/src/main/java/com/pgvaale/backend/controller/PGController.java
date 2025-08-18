@@ -241,7 +241,7 @@ public class PGController {
         return null;
     }
     
-    // Book/Express Interest in PG
+    // Book/Express Interest in PG - Now redirects to payment
     @PostMapping("/{pgId}/book")
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<?> bookPG(@PathVariable Long pgId) {
@@ -277,18 +277,22 @@ public class PGController {
                 return ResponseEntity.badRequest().body("User not found: " + username);
             }
             
-            // Book the PG
-            pg.setRegisteredUser(user);
-            pg.setAvailability("Not Available");
-            
-            PG savedPG = pgRepository.save(pg);
-            
+            // Instead of directly booking, return payment information
+            // The frontend will handle the payment flow
             return ResponseEntity.ok(Map.of(
-                "message", "PG booked successfully",
+                "message", "PG is available for booking. Please proceed with payment.",
                 "pgId", pgId,
-                "bookedBy", username,
-                "availability", "Not Available"
+                "pgDetails", Map.of(
+                    "id", pg.getId(),
+                    "rent", pg.getRent(),
+                    "region", pg.getRegion(),
+                    "amenities", pg.getAmenities()
+                ),
+                "requiresPayment", true,
+                "paymentAmount", pg.getRent(), // Use actual rent amount instead of fixed ₹1
+                "currency", "INR"
             ));
+            
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(500).body(Map.of(
@@ -340,6 +344,58 @@ public class PGController {
             return ResponseEntity.ok(userPGs);
         } catch (Exception e) {
             return ResponseEntity.status(500).body("Error fetching user PGs: " + e.getMessage());
+        }
+    }
+    
+    // Book PG after successful payment
+    @PostMapping("/{pgId}/confirm-booking")
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<?> confirmPGBooking(@PathVariable Long pgId) {
+        try {
+            // Get authenticated user
+            org.springframework.security.core.Authentication auth = 
+                org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+            String username = auth.getName();
+            
+            // Find the PG
+            Optional<PG> pgOptional = pgRepository.findById(pgId);
+            if (!pgOptional.isPresent()) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            PG pg = pgOptional.get();
+            
+            // Check if already booked
+            if ("Not Available".equals(pg.getAvailability()) || pg.getRegisteredUser() != null) {
+                return ResponseEntity.badRequest().body("PG is already booked");
+            }
+            
+            // Find the user by username
+            com.pgvaale.backend.entity.User user = findUserByUsername(username);
+            if (user == null) {
+                return ResponseEntity.badRequest().body("User not found: " + username);
+            }
+            
+            // Book the PG
+            pg.setRegisteredUser(user);
+            pg.setAvailability("Not Available");
+            
+            PG savedPG = pgRepository.save(pg);
+            
+            return ResponseEntity.ok(Map.of(
+                "message", "PG booked successfully after payment verification",
+                "pgId", pgId,
+                "bookedBy", username,
+                "availability", "Not Available"
+            ));
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(Map.of(
+                "error", "Internal server error",
+                "message", e.getMessage(),
+                "pgId", pgId
+            ));
         }
     }
     
